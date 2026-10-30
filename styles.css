@@ -1,0 +1,81 @@
+/* 앱 화면 꾸미기. 색 자체는 .streamlit/config.toml에서 정합니다. */
+
+/* 한글이 단어 중간에서 줄바꿈되지 않도록 */
+.stApp p, .stApp li, .stApp pre, .hero-title, .hero-sub {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 본문 폭을 읽기 좋은 너비로 */
+.block-container {
+  max-width: 1080px;
+  padding-top: 4.5rem;
+}
+
+/* 상단 소개 영역 */
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+.hero-brand img {
+  border-radius: 11px;
+  box-shadow: 0 4px 14px rgba(67, 56, 202, 0.28);
+}
+.hero-brand .hero-eyebrow {
+  margin-bottom: 0;
+}
+.hero-eyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 0.25rem;
+}
+.hero-title {
+  font-size: 2.1rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+}
+.hero-sub {
+  font-size: 1.02rem;
+  opacity: 0.72;
+  margin: 0 0 1.5rem;
+  line-height: 1.6;
+}
+
+/* 결과 카드: 왼쪽 색 띠로 4가지 항목을 구분 */
+[class*="st-key-card-"] {
+  border-left-width: 4px !important;
+  padding: 1.1rem 1.25rem 1.25rem !important;
+  height: 100%;
+}
+.st-key-card-0 { border-left-color: #6366F1 !important; }  /* 해석 */
+.st-key-card-1 { border-left-color: #F59E0B !important; }  /* 충돌하는 요구 */
+.st-key-card-2 { border-left-color: #14B8A6 !important; }  /* 되물을 질문 */
+.st-key-card-3 { border-left-color: #8B5CF6 !important; }  /* 회신 초안 */
+.st-key-card-notice { border-left-color: #94A3B8 !important; }
+
+/* 카드 본문 줄 간격 */
+[class*="st-key-card-"] p,
+[class*="st-key-card-"] li {
+  line-height: 1.7;
+}
+
+/* 회신 초안 복사 상자: 코드 글꼴 대신 본문 글꼴로 */
+.st-key-card-3 pre,
+.st-key-card-3 code {
+  font-family: "Pretendard", sans-serif !important;
+  font-size: 0.95rem !important;
+  line-height: 1.7 !important;
+  white-space: pre-wrap !important;
+}
+
+/* 같은 줄의 두 카드 높이를 맞추기 */
+[data-testid="stLayoutWrapper"]:has(> [class*="st-key-card-"]) {
+  flex: 1 1 auto;
+}

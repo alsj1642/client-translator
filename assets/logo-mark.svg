@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="클라이언트 피드백 번역기 로고">
+  <!-- 배경: 둥근 사각형 -->
+  <rect width="64" height="64" rx="16" fill="#4338CA"/>
+  <!-- 뒤쪽 흐릿한 말풍선 = 모호한 피드백 -->
+  <g fill="#FFFFFF" fill-opacity="0.38">
+    <rect x="10" y="12" width="30" height="21" rx="10.5"/>
+    <path d="M15 30 L12 39 L23 32 Z"/>
+  </g>
+  <!-- 앞쪽 또렷한 말풍선 = 정리된 메시지 -->
+  <g fill="#FFFFFF">
+    <rect x="21" y="25" width="33" height="24" rx="12"/>
+    <path d="M46 46 L52 54 L39 48 Z"/>
+  </g>
+  <!-- 말풍선 안 글줄 -->
+  <g stroke="#4338CA" stroke-width="3.2" stroke-linecap="round">
+    <line x1="29" y1="34" x2="46" y2="34"/>
+    <line x1="29" y1="40.5" x2="39" y2="40.5"/>
+  </g>
+</svg>
