@@ -91,7 +91,7 @@ PowerShell/터미널 창에서 `Ctrl + C`를 누르세요.
 
 ```python
 MODEL_NAME = "gpt-4.1-mini"      # 사용할 모델
-PROMPT_FILE = "prompts/v1.txt"   # 사용할 프롬프트 파일
+PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일
 ```
 
 - **모델 바꾸기**: `MODEL_NAME`의 따옴표 안을 다른 모델 이름으로 바꾸세요.
@@ -107,6 +107,57 @@ PROMPT_FILE = "prompts/v1.txt"   # 사용할 프롬프트 파일
 
 `config.toml`을 고친 뒤에는 앱을 껐다가(`Ctrl + C`) 다시 실행해야 반영돼요.
 메모장으로 저장할 때 인코딩은 **UTF-8**로 저장해주세요.
+
+## 프롬프트 버전
+
+| 파일 | 설명 |
+|---|---|
+| `prompts/v1.txt` | 처음 버전 |
+| `prompts/v2.txt` | 과잉 차단이 생긴 시도 (번역해야 할 문장도 '너무 짧다'고 막음) |
+| `prompts/v2_1.txt` | **현재 사용** |
+
+기존 버전 파일은 고치지 않고, 새 버전은 새 파일로 만듭니다.
+
+## 측정하기
+
+> 측정할 때마다 문장 수만큼 OpenAI를 호출해요 (크레딧이 쓰여요). 같은 문장도 실행할 때마다 답이 조금씩 달라질 수 있어요.
+
+### 1) 프롬프트로 문장 번역해서 저장: `tests/run_baseline.py`
+
+앱과 같은 모델·설정·키 읽는 방식·빈 입력 검사를 그대로 씁니다. 앱 코드는 바꾸지 않아요.
+
+```
+.\.venv\Scripts\python tests\run_baseline.py [프롬프트 파일] [결과 이름] [문장 파일]
+```
+
+- 예) 기존 21건을 v2_1로: `.\.venv\Scripts\python tests\run_baseline.py prompts/v2_1.txt v2_1_run`
+- 예) 새 문장 10건을 v2_1로: `.\.venv\Scripts\python tests\run_baseline.py prompts/v2_1.txt new_v2_1 tests/new_sentences.csv`
+- 결과는 `results/결과이름.csv`(엑셀용)와 `results/결과이름.md`(읽기용)로 저장돼요. 같은 이름이면 덮어써요.
+- 인자를 모두 생략하면 v1 기준 기록과 같아요 (`prompts/v1.txt`, 21건 → `results/v1_baseline`).
+- 문장 파일(`번호, 유형, 업무, 입력, 기대 동작` 열)을 주면 `기대 동작`, `실제 동작`, `일치 여부` 열이 추가돼요.
+- 판정 칸(해석 통과, 질문 통과, 회신 통과, 쓸만함, 메모)은 비워 두고, 사람이 직접 채웁니다.
+
+### 2) 결과 숫자 세기: `tests/measure_metrics.py`
+
+결과 CSV를 읽기만 하고 고치지 않아요.
+
+```
+.\.venv\Scripts\python tests\measure_metrics.py results/v1_baseline.csv results/v2_1_run.csv
+```
+
+- 응답 건수, 고정 안내 문장(개인정보 / 짧은 입력) 건수, '가능한 뜻 2~3가지'가 그대로 찍힌 건수,
+  되물을 질문의 개수·평균·중앙값·최대 자수(공백 포함)·60자 초과 개수를 표로 보여줘요.
+- 파일 이름을 생략하면 `results/` 폴더의 CSV를 모두 읽어요.
+
+## results 폴더
+
+| 파일 | 내용 |
+|---|---|
+| `v1_baseline.*`, `v2_run.*`, `v2_1_run.*` | 기존 21건 측정 결과 (v1, v2, v2_1) |
+| `new_v1.*`, `new_v2.*`, `new_v2_1.*` | 새 문장 10건 측정 결과 |
+| `*_judged.csv` | 사람이 판정 칸을 채운 파일 |
+| `blind/` | 버전을 가린 판정 자료 (어느 버전 응답인지 모르게 섞어서 판정) |
+| `judging_rules.md` | 판정 기준과 변경 이력, 측정 조건 |
 
 ## 이런 안내가 뜨면
 

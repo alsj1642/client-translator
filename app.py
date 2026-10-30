@@ -2,7 +2,7 @@
 # 설정: 바꾸고 싶으면 여기 두 줄만 고치면 됩니다.
 # ==============================================
 MODEL_NAME = "gpt-4.1-mini"      # 사용할 OpenAI 모델 이름
-PROMPT_FILE = "prompts/v1.txt"   # 사용할 프롬프트 파일 (예: "prompts/v2.txt")
+PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일 (예: "prompts/v2.txt")
 
 import base64
 import os
