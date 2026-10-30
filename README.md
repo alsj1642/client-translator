@@ -120,7 +120,7 @@ PROMPT_FILE = "prompts/v1.txt"   # 사용할 프롬프트 파일
 
 ## 배포하기 (Streamlit Community Cloud)
 
-배포 주소: (배포 후 여기에 적기)
+배포 주소: https://client-translator-uhxurpistedfmtpk5ln27q.streamlit.app/
 
 1. 이 프로젝트를 GitHub 저장소에 올립니다. (`.env`는 자동으로 빠져요)
 2. https://share.streamlit.io 에 GitHub 계정으로 로그인하고 **Create app**을 누릅니다.
