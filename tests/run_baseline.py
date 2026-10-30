@@ -1,12 +1,16 @@
 # 개선 전 기준 기록: 지금 프롬프트로 테스트 문장 21건을 번역해서 저장합니다.
-# 실행: .\.venv\Scripts\python tests\run_baseline.py
+# 실행: .\.venv\Scripts\python tests\run_baseline.py [프롬프트 파일] [결과 파일 이름]
+#   예) .\.venv\Scripts\python tests\run_baseline.py prompts/v2.txt v2_run
+#       → prompts/v2.txt로 번역해서 results/v2_run.csv, results/v2_run.md에 저장
+#   인자를 생략하면 v1 기준 기록과 같음 (prompts/v1.txt → results/v1_baseline)
 #
 # 앱(app.py)의 함수와 설정을 그대로 가져다 씁니다. (앱 코드는 바꾸지 않음)
 # - 키: app.load_api_key()   (st.secrets → .env 순서, 키 값은 출력하지 않음)
-# - 프롬프트: app.load_prompt()   (app.PROMPT_FILE)
+# - 프롬프트: app.load_prompt()   (app.PROMPT_FILE을 인자로 받은 파일로 바꿔서 읽음)
 # - 번역: app.ask_ai()   (app.MODEL_NAME, 추가 설정 없음)
 # - 앱과 같은 검사: 입력 앞뒤 공백을 지우고, 비어 있으면 AI를 부르지 않음
 
+import argparse
 import csv
 import hashlib
 import logging
@@ -69,6 +73,12 @@ def translate(api_key, prompt, text):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("prompt_file", nargs="?", default="prompts/v1.txt")
+    parser.add_argument("out_name", nargs="?", default="v1_baseline")
+    args = parser.parse_args()
+    app.PROMPT_FILE = args.prompt_file  # 앱 파일은 그대로 두고, 이번 실행에서만 바꿈
+
     api_key = app.load_api_key()
     prompt = app.load_prompt()
     if not api_key:
@@ -96,7 +106,7 @@ def main():
     out.mkdir(exist_ok=True)
 
     # CSV: 엑셀에서 한글이 깨지지 않도록 utf-8-sig. 맨 위에 측정 정보, 한 줄 띄우고 표
-    with open(out / "v1_baseline.csv", "w", encoding="utf-8-sig", newline="") as f:
+    with open(out / f"{args.out_name}.csv", "w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
         for k, v in info.items():
             w.writerow([k, v])
@@ -107,7 +117,7 @@ def main():
 
     # Markdown: 읽기 쉬운 버전
     ok = sum(1 for r in rows if not r["오류"])
-    lines = ["# v1 개선 전 기준 기록", ""]
+    lines = [f"# {args.out_name} 측정 기록", ""]
     lines += [f"- **{k}**: `{v}`" for k, v in info.items()]
     lines += [f"- **결과**: 성공 {ok}건 / 실패 {len(rows) - ok}건 (전체 {len(rows)}건)", "",
               "> 판정 칸(해석 통과, 질문 통과, 회신 통과, 쓸만함, 메모)은 CSV에서 직접 채웁니다.", ""]
@@ -119,9 +129,9 @@ def main():
         else:
             lines += ["**AI 응답 전문**:", "", r["AI 응답 전문"].strip(), ""]
         lines += ["---", ""]
-    (out / "v1_baseline.md").write_text("\n".join(lines), encoding="utf-8")
+    (out / f"{args.out_name}.md").write_text("\n".join(lines), encoding="utf-8")
 
-    print(f"\n완료: 성공 {ok}건 / 실패 {len(rows) - ok}건 → results/v1_baseline.csv, results/v1_baseline.md")
+    print(f"\n완료: 성공 {ok}건 / 실패 {len(rows) - ok}건 → results/{args.out_name}.csv, results/{args.out_name}.md")
 
 
 if __name__ == "__main__":
