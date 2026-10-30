@@ -3,6 +3,9 @@
 #   예) .\.venv\Scripts\python tests\run_baseline.py prompts/v2.txt v2_run
 #       → prompts/v2.txt로 번역해서 results/v2_run.csv, results/v2_run.md에 저장
 #   인자를 생략하면 v1 기준 기록과 같음 (prompts/v1.txt → results/v1_baseline)
+#   세 번째 인자로 문장 파일을 주면 그 문장으로 측정 (생략하면 아래 CASES 21건)
+#   예) .\.venv\Scripts\python tests\run_baseline.py prompts/v2_1.txt new_v2_1 tests/new_sentences.csv
+#       → 결과에 '기대 동작', '실제 동작', '일치 여부' 열이 추가됨
 #
 # 앱(app.py)의 함수와 설정을 그대로 가져다 씁니다. (앱 코드는 바꾸지 않음)
 # - 키: app.load_api_key()   (st.secrets → .env 순서, 키 값은 출력하지 않음)
@@ -14,6 +17,7 @@ import argparse
 import csv
 import hashlib
 import logging
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -58,6 +62,31 @@ CASES = [
 
 COLUMNS = ["번호", "유형", "업무", "입력", "AI 응답 전문", "오류",
            "해석 통과", "질문 통과", "회신 통과", "쓸만함", "메모"]
+EXPECT_COLUMNS = ["기대 동작", "실제 동작", "일치 여부"]  # 문장 파일을 쓸 때만 '오류' 뒤에 추가
+
+# 번역 제목(1. 해석 등) 찾기: 앱(app.py)의 카드 나누기와 같은 규칙
+HEADING = re.compile(
+    r"^[#>\s*]*([1-4])\s*[.)]\s*\**\s*(" + "|".join(map(re.escape, app.SECTION_TITLES)) + r")\s*\**\s*[:：]?\s*\**",
+    re.MULTILINE,
+)
+
+
+def load_cases(path):
+    """ 문장 파일(번호, 유형, 업무, 입력, 기대 동작)을 읽습니다. """
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        return [(r["번호"], r["유형"], r["업무"], r["입력"], r["기대 동작"]) for r in csv.DictReader(f)]
+
+
+def classify(answer):
+    """ 응답을 보고 실제 동작을 자동 분류합니다. """
+    has_heading = bool(HEADING.search(answer))
+    if not has_heading and ("개인정보" in answer or "이름, 연락처, 회사명" in answer):
+        return "개인정보 안내"
+    if not has_heading and "너무 짧아서" in answer:
+        return "짧은 입력 안내"
+    if has_heading:
+        return "번역"
+    return "기타"
 
 
 def translate(api_key, prompt, text):
@@ -76,8 +105,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("prompt_file", nargs="?", default="prompts/v1.txt")
     parser.add_argument("out_name", nargs="?", default="v1_baseline")
+    parser.add_argument("cases_file", nargs="?", default=None)
     args = parser.parse_args()
     app.PROMPT_FILE = args.prompt_file  # 앱 파일은 그대로 두고, 이번 실행에서만 바꿈
+
+    # 문장 파일이 없으면 기존 21건 그대로. 있으면 그 문장 + 기대/실제 동작 열
+    if args.cases_file:
+        cases = load_cases(ROOT / args.cases_file)
+        columns = COLUMNS[:6] + EXPECT_COLUMNS + COLUMNS[6:]
+    else:
+        cases = [(no, kind, task, text, None) for no, kind, task, text in CASES]
+        columns = COLUMNS
 
     api_key = app.load_api_key()
     prompt = app.load_prompt()
@@ -95,11 +133,16 @@ def main():
     }
 
     rows = []
-    for no, kind, task, text in CASES:
+    for no, kind, task, text, expected in cases:
         print(f"{no} 번역 중...", flush=True)
         answer, error = translate(api_key, prompt, text)
-        rows.append({"번호": no, "유형": kind, "업무": task, "입력": text,
-                     "AI 응답 전문": answer, "오류": error})
+        row = {"번호": no, "유형": kind, "업무": task, "입력": text,
+               "AI 응답 전문": answer, "오류": error}
+        if expected is not None:
+            actual = classify(answer) if not error else "기타"
+            row.update({"기대 동작": expected, "실제 동작": actual,
+                        "일치 여부": "일치" if actual == expected else "불일치"})
+        rows.append(row)
         print(f"  → {'실패: ' + error if error else '성공'}", flush=True)
 
     out = ROOT / "results"
@@ -111,9 +154,9 @@ def main():
         for k, v in info.items():
             w.writerow([k, v])
         w.writerow([])
-        w.writerow(COLUMNS)
+        w.writerow(columns)
         for r in rows:
-            w.writerow([r.get(c, "") for c in COLUMNS])
+            w.writerow([r.get(c, "") for c in columns])
 
     # Markdown: 읽기 쉬운 버전
     ok = sum(1 for r in rows if not r["오류"])
@@ -124,6 +167,8 @@ def main():
     for r in rows:
         lines += [f"## {r['번호']} · {r['유형']} · {r['업무']}", "",
                   f"**입력**: {r['입력']}", ""]
+        if "기대 동작" in r:
+            lines += [f"**기대 동작**: {r['기대 동작']} · **실제 동작**: {r['실제 동작']} · **{r['일치 여부']}**", ""]
         if r["오류"]:
             lines += [f"**오류**: {r['오류']}", ""]
         else:
