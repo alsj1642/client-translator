@@ -4,7 +4,6 @@
 MODEL_NAME = "gpt-4.1-mini"      # 사용할 OpenAI 모델 이름
 PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일 (예: "prompts/v2.txt")
 
-import base64
 import os
 import re
 from pathlib import Path
@@ -74,7 +73,7 @@ def ask_ai(api_key, system_prompt, feedback):
     except openai.APITimeoutError:
         return None, "응답이 너무 오래 걸려요. 잠시 후 다시 시도해주세요."
     except Exception:
-        return None, "AI 호출 중 알 수 없는 문제가 생겼어요. 잠시 후 다시 시도해주세요."
+        return None, "앗, 눈치가 잠깐 꺼졌어요. 잠시 후 다시 시도해주세요."
 
 
 def split_sections(text):
@@ -118,7 +117,7 @@ def render_translate_tab():
 
     # 1) 입력이 비어 있으면 AI를 부르지 않고 안내만
     if not feedback.strip():
-        st.warning("피드백을 입력해주세요")
+        st.warning("눈치챌 문장이 아직 없어요. 피드백을 입력해주세요.")
         return
 
     # 2) API 키 확인
@@ -138,7 +137,7 @@ def render_translate_tab():
         return
 
     # 4) AI 호출
-    with st.spinner("피드백을 해석하는 중이에요..."):
+    with st.spinner("눈치 보는 중…"):
         result, error = ask_ai(api_key, system_prompt, feedback.strip())
 
     if error:
@@ -203,14 +202,6 @@ LOGO_PATH = BASE_DIR / "assets" / "logo-mark.svg"
 HERO_DIR = BASE_DIR / "hero"
 
 
-def logo_data_uri():
-    """ 로고 SVG를 화면에 넣을 수 있는 주소(data URI)로 만듭니다. 파일이 없으면 빈 문자열. """
-    if not LOGO_PATH.exists():
-        return ""
-    data = base64.b64encode(LOGO_PATH.read_bytes()).decode()
-    return f"data:image/svg+xml;base64,{data}"
-
-
 def render_hero():
     """
     맨 위 소개 영역 (커서 물결 효과 + 말랑한 말풍선).
@@ -218,16 +209,16 @@ def render_hero():
     """
     files = [HERO_DIR / name for name in ("hero.html", "hero.css", "hero.js")]
     if not all(f.exists() for f in files):
-        st.title("클라이언트 피드백 번역기")
+        st.title("눈치봇")
         return
     html, css, js = (f.read_text(encoding="utf-8") for f in files)
     hero = st.components.v2.component("hero", html=html, css=css, js=js)
-    hero(data={"logo": logo_data_uri()}, key="hero")
+    hero(key="hero")
 
 
 def main():
     st.set_page_config(
-        page_title="클라이언트 피드백 번역기",
+        page_title="눈치봇 · 클라이언트 피드백 번역",
         page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else ":material/forum:",
         layout="wide",
     )

@@ -197,13 +197,11 @@ function isDarkPage() {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b < 110;
 }
 
-function createHero(root, logo) {
+function createHero(root) {
   const section = root.querySelector(".hero");
   const canvas = root.querySelector(".hero-canvas");
   const clock = root.querySelector(".clock");
   const coords = root.querySelector(".coords");
-  const img = root.querySelector(".brand-logo");
-  if (logo) img.src = logo;
   loadMonoFont();
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -395,9 +393,9 @@ function createHero(root, logo) {
 
 // Streamlit이 화면을 다시 그려도 그림은 처음 한 번만 만들고 계속 이어지게
 const heroes = new WeakMap();
-export default function ({ parentElement, data }) {
+export default function ({ parentElement }) {
   if (!heroes.has(parentElement)) {
-    heroes.set(parentElement, createHero(parentElement, data && data.logo));
+    heroes.set(parentElement, createHero(parentElement));
   }
   return () => {
     const dispose = heroes.get(parentElement);
