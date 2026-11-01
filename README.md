@@ -7,6 +7,11 @@
 3. **되물을 질문 후보** – 클라이언트에게 그대로 보낼 수 있는 질문 3개
 4. **회신 초안** – 정중한 답장 3~5문장
 
+화면은 탭 두 개예요.
+
+- **번역**: 위 4가지를 타자 친 종이처럼 차례대로 보여줘요. 번역이 끝나면 작은 로봇 눈치봇이 결과를 한 줄로 요약해줘요.
+- **하소연**: 클라이언트 때문에 힘들었던 일을 적고 구겨서 쓰레기통에 던져요. 원하면 눈치봇이 한마디 해줘요. 적은 글은 저장되지 않아요.
+
 ---
 
 ## 실행 방법 (처음 하는 분용)
@@ -87,26 +92,33 @@ PowerShell/터미널 창에서 `Ctrl + C`를 누르세요.
 
 ## 자주 바꾸는 설정
 
-`app.py` 맨 위 두 줄만 고치면 됩니다.
+`app.py` 맨 위 세 줄만 고치면 됩니다.
 
 ```python
 MODEL_NAME = "gpt-4.1-mini"      # 사용할 모델
-PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일
+PROMPT_FILE = "prompts/v2_1.txt"   # 번역 탭 프롬프트 파일
+VENT_PROMPT_FILE = "prompts/vent_v6.txt"  # 하소연 탭 로봇 한마디용 프롬프트 파일
 ```
 
-- **모델 바꾸기**: `MODEL_NAME`의 따옴표 안을 다른 모델 이름으로 바꾸세요.
-- **프롬프트 v2 시험하기**: `prompts/v1.txt`를 복사해 `prompts/v2.txt`를 만들고 내용을 고친 뒤, `PROMPT_FILE = "prompts/v2.txt"`로 바꾸세요.
+- **모델 바꾸기**: `MODEL_NAME`의 따옴표 안을 다른 모델 이름으로 바꾸세요. 번역과 하소연 탭이 같은 모델을 써요.
+- **새 프롬프트 시험하기**: 지금 쓰는 파일을 복사해 새 이름(예: `prompts/v3.txt`)으로 만들고 내용을 고친 뒤, `PROMPT_FILE = "prompts/v3.txt"`로 바꾸세요.
 
 저장 후 브라우저에서 새로고침하면 반영됩니다.
 
-### 디자인(색·글꼴) 바꾸기
+### 디자인 바꾸기
 
-- **색, 글꼴, 모서리 둥글기**: `.streamlit/config.toml`
-  (`[theme.light]`는 밝은 화면, `[theme.dark]`는 컴퓨터가 다크 모드일 때 색)
-- **카드 왼쪽 색 띠, 여백 등 세부 모양**: `styles.css`
-- **맨 위 소개 영역 (글자, 배치, 물결·말풍선 움직임)**: `hero/` 폴더
+디자인 기준은 `DESIGN.md`에 정리되어 있어요. 흰 바탕에 검은 선, 형광 연두 포인트, 픽셀 글꼴 Mona12를 써요.
+
+- **기본 글자색, 버튼색, 모서리**: `.streamlit/config.toml`
+  (`[theme.light]`는 밝은 화면, `[theme.dark]`는 컴퓨터가 다크 모드일 때 색. 지금은 둘 다 흰 바탕 + 검은 글자)
+- **번역 탭 세부 모양 (탭, 입력 메모, 버튼, 결과 종이, 커지는 박스)**: `styles.css`
+- **맨 위 소개 영역 (큰 카피, 가운데 3D 로봇, 등장 효과)**: `hero/` 폴더
   - 글자 바꾸기: `hero/hero.html` · 배치·크기: `hero/hero.css` · 움직임: `hero/hero.js`
-  - 저장 후 브라우저에서 새로고침하면 반영돼요.
+  - 3D 로봇 그림: `hero/robot-character.js` (원본은 따로 있는 robot-character 프로젝트예요. 원본을 고쳐서 복사해요)
+- **'번역하기' 버튼 옆 작은 로봇**: `buddy/` 폴더
+- **하소연 탭 (화면, 구겨 던지기·불태우기 효과, 효과음)**: `vent/` 폴더
+
+저장 후 브라우저에서 새로고침하면 반영돼요.
 
 `config.toml`을 고친 뒤에는 앱을 껐다가(`Ctrl + C`) 다시 실행해야 반영돼요.
 메모장으로 저장할 때 인코딩은 **UTF-8**로 저장해주세요.
@@ -118,6 +130,8 @@ PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일
 | `prompts/v1.txt` | 처음 버전 |
 | `prompts/v2.txt` | 과잉 차단이 생긴 시도 (번역해야 할 문장도 '너무 짧다'고 막음) |
 | `prompts/v2_1.txt` | **현재 사용** |
+| `prompts/vent_v1.txt` ~ `vent_v5.txt` | 하소연 탭 한마디의 이전 버전 |
+| `prompts/vent_v6.txt` | 하소연 탭 한마디 **현재 사용** |
 
 기존 버전 파일은 고치지 않고, 새 버전은 새 파일로 만듭니다.
 
@@ -190,21 +204,24 @@ PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일
 - 배포 후에 키를 바꾸려면: 앱 화면 오른쪽 아래 **Manage app** → 점 세 개 → **Settings** → **Secrets**.
 - 키는 GitHub에 절대 올리지 마세요. 배포 사이트의 Secrets에만 넣습니다.
 - 앱은 Secrets를 먼저 읽고, 없으면 내 컴퓨터의 `.env`를 읽어요. 그래서 내 컴퓨터에서는 지금처럼 `.env`만 있으면 됩니다.
-- 글꼴과 로봇 시험용 3D 라이브러리는 인터넷(jsDelivr CDN)에서, 소개 영역의 타자기 느낌 글꼴(JetBrains Mono)은 Google Fonts에서 불러와요. 이 주소가 막힌 환경에서는 글꼴이 기본 글꼴로 보이고 로봇이 뜨지 않을 수 있어요.
+- 픽셀 글꼴(Mona12)과 3D 로봇 라이브러리(Three.js)는 인터넷(jsDelivr CDN)에서 불러와요. 이 주소가 막힌 환경에서는 글꼴이 기본 글꼴로 보이고 로봇 자리만 비어 있어요. 번역과 하소연 기능은 그대로 써요.
 
 ## 폴더 구성
 
 ```
 client-translator/
 ├─ app.py             # 앱 본체
-├─ styles.css         # 화면 세부 디자인 (카드 색 띠 등)
-├─ hero/              # 맨 위 소개 영역 (글자 hero.html, 모양 hero.css, 움직임 hero.js)
+├─ styles.css         # 번역 탭 세부 디자인 (입력 메모, 버튼, 결과 종이 등)
+├─ hero/              # 맨 위 소개 영역 (글자 hero.html, 모양 hero.css, 움직임 hero.js, 3D 로봇 robot-character.js)
+├─ buddy/             # '번역하기' 버튼 옆 작은 로봇
+├─ vent/              # 하소연 탭 (화면 vent.html, 모양 vent.css, 움직임·소리 vent.js)
 ├─ assets/
-│  └─ logo-mark.svg   # 앱 로고 (브라우저 탭 아이콘)
+│  └─ logo-mark.svg   # 예전 로고 (지금은 쓰지 않음. 탭 아이콘은 👀)
 ├─ .streamlit/
-│  └─ config.toml     # 색·글꼴 테마 (밝은/어두운 화면)
-├─ prompts/
-│  └─ v1.txt          # AI에게 주는 지시문 (버전별로 파일 추가)
+│  └─ config.toml     # 색 테마 (밝은/어두운 화면)
+├─ prompts/           # AI에게 주는 지시문 (번역 v1~v2_1, 하소연 vent_v1~v6. 버전별로 파일 추가)
+├─ tests/             # 프롬프트 측정 스크립트
+├─ results/           # 측정 결과
 ├─ requirements.txt   # 필요한 라이브러리 목록
 ├─ .env               # 내 API 키 (비공개, git에 안 올라감)
 ├─ .env.example       # 키 없는 예시 파일 (공유용)
@@ -212,6 +229,7 @@ client-translator/
 ├─ robot_test/        # 3D 로봇 시험용 코드 (서비스 앱과 별개)
 ├─ robot_test_app.py  # 로봇 시험판 v1 (표정 바꾸면 다시 시작됨)
 ├─ robot_test_v2_app.py # 로봇 시험판 v2 (표정만 바뀜)
+├─ DESIGN.md          # 디자인 기준
 ├─ CLAUDE.md          # 프로젝트 규칙
 └─ README.md
 ```
