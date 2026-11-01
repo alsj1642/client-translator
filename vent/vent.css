@@ -24,17 +24,19 @@
 }
 
 /* 로봇 + 말풍선 */
+/* 로봇은 말풍선 아래쪽에 맞춰서, 꼬리 끝이 로봇 목~가슴께를 가리키게 (번역 결과 화면과 같은 느낌) */
 .vent-talk {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
-  margin-bottom: 14px;
+  margin-bottom: 40px; /* 말풍선 아래로 내려온 로봇 몸과 그림자 자리 */
 }
 /* 로봇: 번역 탭 로봇과 같은 크기 (200px 그림을 132px 자리에 겹쳐 앉힘) */
 .vent-robot {
   flex: 0 0 200px;
   height: 200px;
   margin: -34px;
+  margin-bottom: -70px; /* 그림을 말풍선 아래 끝보다 70px 내려서 꼬리 끝 = 로봇 목~가슴 */
 }
 .vent-bubble {
   position: relative;
@@ -115,6 +117,7 @@
   background-attachment: local;
 }
 .vent-paper textarea::placeholder { color: #8A8A85; }
+.vent-count.over { color: var(--ink); } /* 300자 넘음 안내는 조금 진하게 */
 .vent-meta {
   display: flex;
   justify-content: space-between;
@@ -310,6 +313,7 @@
 
 /* 좁은 화면 (휴대폰) */
 @media (max-width: 720px) {
-  .vent-robot { flex-basis: 140px; height: 140px; margin: -22px; } /* 번역 탭 휴대폰 크기와 같게 */
+  .vent-robot { flex-basis: 180px; height: 180px; margin: -31px; margin-bottom: -63px; } /* 번역 탭 로봇과 비슷한 크기 */
+  .vent-talk { margin-bottom: 36px; }
   .vent-actions { flex-wrap: wrap; }
 }

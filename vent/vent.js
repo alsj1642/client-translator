@@ -4,6 +4,9 @@
 // 3) 던지기: 구겨진 종이가 포물선을 그리며 쓰레기통으로 날아감 (쓰레기통이 살짝 흔들림)
 // 4) 로봇 반응: AI 답을 기다리는 동안 '생각 중', 답이 오면 고른 말투 표정(정중/팩폭)으로 말풍선에 한마디
 // 로봇 한마디를 끄면 글은 어디에도 보내지 않고, 고정 문구(data.fixedReply)만 보여줌
+// 안전장치: 던지기 전에 글 전체를 브라우저에서 먼저 검사함 (단어 목록은 app.py가 data로 넘겨줌)
+//   자해·죽음 신호(crisisWords) → 스위치와 상관없이 AI에 보내지 않고 바로 도움받을 곳 안내(crisisReply)
+//   힘듦이 심해 보이는 글(distressWords) → 켰으면 '걱정' 말투로 보내고, 껐으면 걱정을 전하는 고정 문구(distressReply)
 // 켜면 글(앞부분)과 말투를 파이썬에 보내고(setTriggerValue 'throw'), 파이썬이 AI 답을 data.reply로 돌려줌
 // "애니메이션 줄이기"를 켠 컴퓨터에서는 구겨지기/날아가기 없이 바로 비움
 
@@ -193,6 +196,7 @@ function createVent(root, data) {
   let timeout = 0;
   let sendThrow = () => {};
   const fixedReply = data?.fixedReply || "다 털었어요. 한결 가볍죠?";
+  const hasAny = (text, words) => (words || []).some((w) => text.includes(w));
 
   function say(text, more = "") {
     title.textContent = text;
@@ -201,8 +205,12 @@ function createVent(root, data) {
   function face(name) {
     robot?.setExpression(name);
   }
+  // 글자 수. 눈치봇 한마디를 켠 채 300자를 넘으면 앞부분만 전달된다고 알려줌
   function updateCount() {
-    count.textContent = `${Array.from(textarea.value).length}자`;
+    const n = Array.from(textarea.value).length;
+    const over = n > MAX_CHARS && aiOn();
+    count.textContent = over ? `${n}자 · 눈치봇에게는 앞 ${MAX_CHARS}자까지만 전달돼요` : `${n}자`;
+    count.classList.toggle("over", over);
   }
   function setBusy(busy) {
     throwBtn.disabled = busy;
@@ -235,6 +243,7 @@ function createVent(root, data) {
     const on = aiSwitch.getAttribute("aria-checked") !== "true";
     aiSwitch.setAttribute("aria-checked", String(on));
     aiBox.classList.toggle("off", !on);
+    updateCount();
   });
   const aiOn = () => aiSwitch.getAttribute("aria-checked") === "true";
 
@@ -333,11 +342,13 @@ function createVent(root, data) {
     }
     setBusy(true);
     const id = Date.now();
-    const useAi = aiOn();
+    const crisis = hasAny(text, data?.crisisWords);
+    const distress = hasAny(text, data?.distressWords);
+    const useAi = aiOn() && !crisis; // 자해·죽음 신호가 있으면 AI에 보내지 않음
     if (useAi) {
       // 애니메이션과 동시에 AI 답을 받으러 보냄 (기다리는 시간을 줄이려고)
       pendingId = id;
-      sendThrow({ id, text: Array.from(text).slice(0, MAX_CHARS).join(""), tone });
+      sendThrow({ id, text: Array.from(text).slice(0, MAX_CHARS).join(""), tone, distress });
     }
     textarea.value = ""; // 글은 이 순간 사라짐
     updateCount();
@@ -345,8 +356,10 @@ function createVent(root, data) {
     await landed;
 
     if (!useAi) {
-      say(fixedReply);
-      face("정중");
+      if (crisis) say(data?.crisisReply || fixedReply);
+      else if (distress) say(data?.distressReply || fixedReply);
+      else say(fixedReply);
+      face(crisis || distress ? "기본" : "정중");
       setBusy(false);
       return;
     }

@@ -85,7 +85,8 @@ function followScroll(root, cleanups) {
 // 큰 카피 등장: 흐릿한 글자 → 로봇이 눈치를 살피며 바라본 글자부터 또렷해짐
 // 1) 로봇이 설계도 윤곽선으로 그려지는 동안 큰 카피는 흐릿하게 떨림 (hero.css의 .fuzzy)
 // 2) 로봇이 3D로 바뀌면(onReveal) '모호한' → '피드백🤔' → 아랫줄 순서로 바라보고, 바라본 글자가 또렷해짐 (.clear)
-// 3) 마지막에 정면(보는 사람)을 보며 '정중'(^ ^) 표정, 잠시 뒤 평소 표정으로 돌아가고 다시 마우스를 따라봄
+// 3) 마지막에 정면(보는 사람)을 보며 '정중'(^ ^) 표정 + '눈치껏👀 번역해드릴게요👌'에 형광 연두 형광펜 (.marked)
+//    잠시 뒤 평소 표정으로 돌아가고 다시 마우스를 따라봄
 const GAZE = {
   start: 100,  // 3D로 바뀐 뒤 처음 바라보기까지(ms)
   step: 420,   // 한 곳을 바라보는 시간(ms)
@@ -97,12 +98,19 @@ const GAZE = {
 function setupCopyIntro(root, cleanups) {
   const title = root.querySelector(".hero-title");
   const words = [".left", ".right", ".single"].map((s) => title?.querySelector(s)).filter(Boolean);
-  if (!title || matchMedia("(prefers-reduced-motion: reduce)").matches) return { play() {} };
+  if (!title) return { play() {} };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    title.classList.add("marked"); // 효과 없이 마지막 모습(형광펜 칠한 상태) 그대로
+    return { play() {} };
+  }
 
   title.classList.add("fuzzy");
   const timers = [];
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
-  const clearAll = () => words.forEach((w) => w.classList.add("clear"));
+  const clearAll = () => {
+    words.forEach((w) => w.classList.add("clear"));
+    title.classList.add("marked");
+  };
   later(GAZE.fallback, clearAll);
   cleanups.push(() => timers.forEach(clearTimeout));
 
@@ -127,6 +135,7 @@ function setupCopyIntro(root, cleanups) {
       const front = GAZE.start + words.length * GAZE.step;
       later(front, () => {
         robot.lookAt("viewer");
+        title.classList.add("marked");
         robot.setExpression("정중");
       });
       later(front + GAZE.smile, () => {

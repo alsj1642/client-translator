@@ -275,6 +275,23 @@
 [data-testid="stBaseButton-primary"][data-buddy] span[data-has-shortcut] {
   padding-left: 84px;
 }
+/* 휴대폰: 박스 안 양옆 여백을 조금 넓힘 (번역 탭, 하소연 탭 공통) */
+@media (max-width: 720px) {
+  [data-testid="stTabs"] {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+/* 휴대폰: 버튼이 화면 폭만큼 넓어서, 로봇 + '번역하기'가 한 묶음으로 버튼 가운데쯤 오게
+   또 버튼 위로 튀어나온 로봇이 위의 개인정보 안내 글을 가리지 않게 버튼을 아래로 띄움 */
+@media (max-width: 720px) {
+  [data-testid="stBaseButton-primary"][data-buddy] span[data-has-shortcut] {
+    padding-left: 100px;
+  }
+  [data-testid="stColumn"]:has([data-testid="stBaseButton-primary"]) {
+    margin-top: 64px;
+  }
+}
 [data-testid="stBaseButton-primary"]:hover {
   background: var(--neon);
   color: var(--ink);

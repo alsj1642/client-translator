@@ -103,6 +103,16 @@
   animation: none;
 }
 
+/* 등장 마지막: '눈치껏👀 번역해드릴게요👌'에 형광 연두 형광펜이 왼쪽부터 쓱 (두 덩어리를 차례로). 글자 아래쪽 절반쯤만 칠함 */
+.hero-title .single .part {
+  background: linear-gradient(transparent 52%, #76F25C 52%, #76F25C 94%, transparent 94%) no-repeat 0 0 / 0% 100%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-size 0.5s ease-out;
+}
+.hero-title .single .part + .part { transition-delay: 0.35s; }
+.hero-title.marked .single .part { background-size: 100% 100%; }
+
 /* 3D 로봇: 화면 가운데, 큰 카피 위 */
 .hero-robot {
   position: absolute;
@@ -145,11 +155,25 @@
 
 /* 좁은 화면 (휴대폰): 글자가 작아서 로봇에 가려지지 않게,
    첫 줄은 로봇 위, 둘째 줄은 로봇 아래에 둠 (두 줄 모두 화면 폭을 꽉 채움) */
+/* 휴대폰: 세 줄로 끊어서 화면 폭을 채움 — '모호한 피드백🤔' / (로봇) / '눈치껏👀' / '번역해드릴게요👌'
+   글자 크기는 가장 긴 줄('번역해드릴게요👌' = 글자 크기의 8배 폭)이 양 끝까지 차게 */
 @media (max-width: 720px) {
-  .hero { --robot: min(300px, 76vw, 44vh); }
+  .hero {
+    --robot: min(300px, 76vw, 44vh);
+    --reserve: 190px; /* 아래쪽 비워둘 높이: 걸쳐 보이는 박스(120px) + '번역하러 가기' 자리 */
+  }
   .hero-top { top: 22px; }
-  .hero-title { gap: calc(var(--robot) * 0.78); }
+  /* 글자와 로봇을 아래쪽 비운 자리 위 공간의 가운데에 (화면 가운데보다 위로) */
+  .hero-robot { top: calc((100% - var(--reserve)) / 2); }
+  .hero-title {
+    bottom: var(--reserve);
+    gap: calc(var(--robot) * 0.78);
+    font-size: calc((100vw - var(--side) * 2) / 8.1);
+    padding-top: 1.1em; /* 아래가 두 줄이라, 로봇(화면 가운데)이 윗줄과 아랫줄 사이 한가운데 오도록 위를 한 줄만큼 띄움 */
+  }
   /* 윗줄은 로봇 위에 있으니 가운데 칸 없이 붙여서 가운데 정렬 */
-  .hero-title .line { grid-template-columns: auto auto; justify-content: center; column-gap: 0.35em; }
+  .hero-title .line { grid-template-columns: auto auto; justify-content: center; column-gap: 0.33em; }
   .hero-title .left, .hero-title .right { grid-column: auto; }
+  /* 아랫줄은 '눈치껏👀' / '번역해드릴게요👌' 두 줄로 */
+  .hero-title .line.single .part { display: block; width: fit-content; margin-inline: auto; } /* 형광펜이 글자 폭만큼만 */
 }

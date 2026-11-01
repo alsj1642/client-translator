@@ -3,7 +3,7 @@
 # ==============================================
 MODEL_NAME = "gpt-4.1-mini"      # 사용할 OpenAI 모델 이름
 PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일 (예: "prompts/v2.txt")
-VENT_PROMPT_FILE = "prompts/vent_v4.txt"  # 하소연 탭 로봇 한마디용 프롬프트 파일
+VENT_PROMPT_FILE = "prompts/vent_v6.txt"  # 하소연 탭 로봇 한마디용 프롬프트 파일
 
 import os
 import random
@@ -276,12 +276,32 @@ def render_result(result):
     st.caption(f"모델: {MODEL_NAME} · 프롬프트: {PROMPT_FILE}")
 
 
-# 하소연 탭 설정 (토큰 아끼기: 글은 앞부분만, 답은 한 문장만)
+# 하소연 탭 설정 (토큰 아끼기: 글은 앞부분만, 답은 한두 문장만)
 VENT_FIXED_REPLY = "다 털었어요. 한결 가볍죠?"  # 로봇 한마디를 끈 경우 보여줄 고정 문구
 VENT_MAX_CHARS = 300   # AI에게 보내는 하소연 글의 최대 글자 수 (앞부분만)
-VENT_MAX_TOKENS = 90   # AI 답의 최대 길이 (한두 문장이면 충분)
-VENT_TONES = ["정중", "팩폭"]  # 로봇 말투 (로봇 표정 이름과 같음)
+VENT_MAX_TOKENS = 120  # AI 답의 최대 길이 (한두 문장, '걱정' 말투일 때는 두세 문장)
+VENT_TONES = ["정중", "팩폭"]  # 사용자가 고르는 로봇 말투 (로봇 표정 이름과 같음)
 VENT_ERROR_REPLY = "앗, 지금은 한마디가 어려워요. 그래도 다 털었어요."
+
+# 안전장치: AI에게만 맡기지 않고 코드에서 먼저 확인합니다 (글 전체를 브라우저에서 검사, 파이썬에서 한 번 더)
+# 1) 자해·죽음 신호가 있는 글: AI에 보내지 않고, 스위치와 상관없이 바로 도움받을 곳을 알려줍니다.
+#    ('짜증나 죽겠네', '목숨 걸고', '극단적인 요청'처럼 흔히 쓰는 표현은 걸리지 않게 뺐습니다)
+VENT_CRISIS_WORDS = [
+    "죽고 싶", "죽고싶", "자살", "자해", "사라지고 싶", "사라지고싶",
+    "살기 싫", "살고 싶지 않", "그만 살", "뛰어내리",
+]
+VENT_CRISIS_REPLY = "많이 힘들었겠어요. 그런 마음이 들 땐 혼자 견디지 말고 자살예방상담전화 109에 이야기해보세요. 언제든 들어줘요."
+# 2) 힘듦이 심해 보이는 글: 고른 말투와 상관없이 '걱정' 말투로 (스위치를 끄면 아래 고정 문구)
+VENT_DISTRESS_WORDS = [
+    "번아웃", "잠도 못", "잠을 못", "못 자", "그만두고 싶", "그만두고싶", "우울",
+    "숨이 막", "버티기 힘", "너무 지쳐", "울었", "눈물",
+]
+VENT_DISTRESS_REPLY = "오늘 정말 많이 지쳤겠어요. 일은 잠깐 내려놓고 푹 쉬고, 힘들면 믿을 만한 사람에게 꼭 이야기해요."
+
+
+def has_any(text, words):
+    """ 글에 words 중 하나라도 들어 있으면 True """
+    return any(w in text for w in words)
 
 
 def vent_reply(payload):
@@ -295,18 +315,26 @@ def vent_reply(payload):
     tone = payload.get("tone") if payload.get("tone") in VENT_TONES else VENT_TONES[0]
     if not text:
         return {"id": reply_id, "text": VENT_FIXED_REPLY, "face": "정중"}
+    # 안전장치 (브라우저에서도 먼저 걸러서 보통은 여기까지 오지 않음)
+    if has_any(text, VENT_CRISIS_WORDS):
+        return {"id": reply_id, "text": VENT_CRISIS_REPLY, "face": "기본"}
+    distress = bool(payload.get("distress")) or has_any(text, VENT_DISTRESS_WORDS)
+    if distress:
+        tone = "걱정"
+    fallback = VENT_DISTRESS_REPLY if distress else VENT_ERROR_REPLY
 
     api_key = load_api_key()
     path = BASE_DIR / VENT_PROMPT_FILE
     if not api_key or not path.exists():
-        return {"id": reply_id, "text": VENT_ERROR_REPLY, "face": "오류"}
+        return {"id": reply_id, "text": fallback, "face": "기본" if distress else "오류"}
 
     system_prompt = path.read_text(encoding="utf-8").strip()
     reply, error = ask_ai(api_key, system_prompt, f"말투: {tone}\n하소연: {text}", max_tokens=VENT_MAX_TOKENS)
     lines = [l.strip().strip('"') for l in (reply or "").splitlines() if l.strip()]
     if error or not lines:
-        return {"id": reply_id, "text": VENT_ERROR_REPLY, "face": "오류"}
-    return {"id": reply_id, "text": " ".join(lines)[:120], "face": tone}
+        return {"id": reply_id, "text": fallback, "face": "기본" if distress else "오류"}
+    # '걱정' 말투면 웃거나 발끈한 표정 대신 평소 표정
+    return {"id": reply_id, "text": " ".join(lines)[:160], "face": "기본" if distress else tone}
 
 
 def render_vent_tab():
@@ -325,6 +353,10 @@ def render_vent_tab():
         data={
             "robotCode": load_robot_code(),
             "fixedReply": VENT_FIXED_REPLY,
+            "crisisWords": VENT_CRISIS_WORDS,
+            "crisisReply": VENT_CRISIS_REPLY,
+            "distressWords": VENT_DISTRESS_WORDS,
+            "distressReply": VENT_DISTRESS_REPLY,
             "reply": st.session_state.get("vent_reply"),
         },
         key="vent",
