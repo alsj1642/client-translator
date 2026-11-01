@@ -1,4 +1,4 @@
-/* 앱 화면 꾸미기. 색 자체는 .streamlit/config.toml에서 정합니다.
+/* 앱 화면 꾸미기. 글자/버튼 기본색은 .streamlit/config.toml에서 정합니다.
    맨 위 소개 영역은 따로 떨어진 상자라서 hero/hero.css에서 꾸밉니다. */
 
 /* 한글이 단어 중간에서 줄바꿈되지 않도록 */
@@ -7,73 +7,404 @@
   overflow-wrap: anywhere;
 }
 
-/* 본문 폭을 읽기 좋은 너비로 */
+/* 본문 폭을 읽기 좋은 너비로. 맨 위는 소개 영역이 화면 끝까지 붙도록 여백 없음 */
 .block-container {
   max-width: 1080px;
-  padding-top: 4rem;
+  padding-top: 0;
 }
 
-/* 소개 영역과 탭 사이 간격 */
+/* 이 CSS를 불러오는 빈 상자가 맨 위에 간격을 만들어서 숨김 (숨겨도 CSS는 그대로 적용됨) */
+[data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"] style) {
+  display: none;
+}
+
+/* 앱 바탕: 소개 영역과 같은 흰색. 스크롤바 자리도 같은 색 */
+.stApp {
+  background: #FFFFFF;
+  --ink: #111111; /* 글자, 선 */
+  --paper: #F4F4EF; /* 박스 바탕 (미색 종이) */
+  --fill: #EBEBE6; /* 입력 칸 바탕 (옅은 회색) */
+  --neon: #76F25C; /* 포인트 (형광 연두) */
+  --stroke: 1.5px; /* 선 굵기 */
+  --peek: 120px; /* 첫 화면 아래에 박스가 걸쳐 보이는 높이 */
+  /* 메인과 같은 픽셀 글꼴 Mona12 (글꼴 파일은 hero/hero.js가 불러옴) */
+  --pixel: "Mona12 Text KR", "Mona12 Color Emoji", "Mona12", "Pretendard", sans-serif;
+}
+
+/* 맨 위 메뉴 줄(Deploy 등)은 투명하게 → 소개 영역이 화면 맨 위부터 보이도록 */
+[data-testid="stHeader"] {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------
+   소개 영역 → 커지는 박스 (레퍼런스: calendly.com의 스크롤 효과)
+   - 소개 영역은 화면 너비를 꽉 채우고, 스크롤해도 제자리에 머묾 (뒤로 깔림)
+   - 첫 화면 아래에 박스가 작게 걸쳐 보이고(--peek),
+     스크롤할수록 양옆으로 넓어져 화면을 꽉 채움 → 다 차면 입력 화면이 떠오름
+   - 스크롤 정도(--sheet, 0~1)는 hero.js가 스크롤 상자([data-testid="stMain"])에 적어줌
+   ------------------------------------------------------------ */
 .st-key-hero {
-  margin-bottom: 0.75rem;
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-bottom: calc(var(--peek) * -1); /* 아래 박스가 첫 화면 안으로 --peek만큼 올라옴 */
+}
+/* 화면 너비를 채울 때 오른쪽 스크롤바만큼 가로로 넘치지 않도록 */
+[data-testid="stMain"] {
+  overflow-x: hidden;
+  --sheet: 0;
 }
 
-/* 결과 카드: 왼쪽 색 띠로 4가지 항목을 구분 */
-[class*="st-key-card-"] {
-  border-left-width: 4px !important;
-  padding: 1.1rem 1.25rem 1.25rem !important;
-  height: 100%;
+/* 박스 = 탭 영역 뒤에 깔리는 검은 선 테두리의 미색 종이. 처음엔 좁고(--start-w) 다 차면 양옆 12px만 남김 */
+[data-testid="stTabs"] {
+  --start-w: min(760px, 72vw);
+  --inset: calc((1 - var(--sheet)) * ((100vw - var(--start-w)) / 2 - 12px) + 12px);
+  --show: clamp(0, (var(--sheet) - 0.6) * 2.5, 1); /* 박스가 거의 다 차면 0 → 1 */
+  position: relative;
+  z-index: 1;
+  min-height: calc(100svh - 24px); /* 다 찼을 때 화면 높이를 채움 */
+  padding-top: 72px;
 }
-.st-key-card-0 { border-left-color: #3B82F6 !important; }  /* 해석 */
-.st-key-card-1 { border-left-color: #F59E0B !important; }  /* 충돌하는 요구 */
-.st-key-card-2 { border-left-color: #14B8A6 !important; }  /* 되물을 질문 */
-.st-key-card-3 { border-left-color: #84CC16 !important; }  /* 회신 초안 */
-.st-key-card-notice { border-left-color: #94A3B8 !important; }
+[data-testid="stTabs"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: -148px; /* 본문 아래 여백까지 덮되 화면 끝에 12px 남김 */
+  left: calc(50% - 50vw + var(--inset));
+  right: calc(50% - 50vw + var(--inset));
+  border: var(--stroke) solid var(--ink);
+  border-radius: 28px;
+  background: var(--paper);
+}
+/* 입력 화면: 박스가 거의 다 차면 아래에서 살짝 떠오르며 나타남 */
+[data-testid="stTabs"] > div {
+  opacity: var(--show);
+  transform: translateY(calc((1 - var(--show)) * 28px));
+}
 
-/* 카드가 나타날 때: 아래에서 휘어진 채 떠올랐다가 반듯하게 펴짐 */
-@keyframes card-rise {
-  from {
-    opacity: 0;
-    transform: perspective(900px) translateY(36px) rotateX(-16deg) skewY(2.5deg);
-  }
-  60% {
-    opacity: 1;
-    transform: perspective(900px) translateY(-4px) rotateX(2deg) skewY(-0.4deg);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+/* ------------------------------------------------------------
+   입력 화면: 키치한 라인 스타일 (레퍼런스: 검은 선 + 형광 연두 + 접힌 종이 카드)
+   ------------------------------------------------------------ */
+
+/* 글꼴: 아래 화면 글자도 메인과 같은 Mona12. 아이콘(Material Symbols)은 그대로 둠 */
+[data-testid="stTabs"] *:not([data-testid="stIconMaterial"]):not([role="img"]) {
+  font-family: var(--pixel) !important;
+}
+[data-testid="stTabs"] {
+  color: var(--ink);
+}
+
+/* 탭: 검은 선 알약. 고른 탭은 형광 연두 + 검은 선 */
+[data-testid="stTabs"] [role="tablist"] {
+  gap: 6px;
+  padding: 5px;
+  width: fit-content;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: #FFFFFF;
+}
+[data-testid="stTab"] {
+  height: auto;
+  padding: 7px 18px;
+  border: var(--stroke) solid transparent;
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+[data-testid="stTab"],
+[data-testid="stTab"] p {
+  color: var(--ink);
+}
+[data-testid="stTab"] p {
+  font-size: 16px;
+}
+[data-testid="stTab"][aria-selected="true"] {
+  background: var(--neon);
+  border-color: var(--ink);
+}
+[data-testid="stTabs"] .react-aria-SelectionIndicator,
+[data-testid="stTabs"] [role="tablist"] + * hr {
+  display: none;
+}
+[data-testid="stTabPanel"] {
+  padding-top: 2.2rem;
+}
+
+/* 입력 칸 제목: 큼직한 픽셀 글자 */
+[data-testid="stTextArea"] [data-testid="stWidgetLabel"] p {
+  font-size: clamp(24px, 2.6vw, 36px);
+  line-height: 1.2;
+  color: var(--ink);
+}
+[data-testid="stTextArea"] [data-testid="stWidgetLabel"] {
+  margin-bottom: 0.8rem;
+}
+
+/* 입력 칸: 옅은 회색 + 검은 선 */
+[data-testid="stTextAreaRootElement"] {
+  border: var(--stroke) solid var(--ink) !important;
+  border-radius: 18px !important;
+  background: var(--fill) !important;
+  box-shadow: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+[data-testid="stTextAreaRootElement"]:focus-within {
+  background: #FFFFFF !important;
+  box-shadow: 4px 4px 0 var(--ink); /* 누르면 그림자 선이 생기며 살짝 떠 보임 */
+}
+[data-testid="stTextAreaRootElement"] textarea {
+  background: transparent !important;
+  color: var(--ink) !important;
+  padding: 1.2rem 1.4rem !important;
+  font-size: 18px !important;
+  line-height: 1.6 !important;
+}
+[data-testid="stTextAreaRootElement"] textarea::placeholder {
+  color: #8A8A85 !important;
+}
+
+/* 작은 안내 문구 */
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p {
+  font-size: 13px;
+  color: #55554F;
+}
+
+/* 버튼: 형광 연두 + 검은 선 + 오른쪽에 동그라미 화살표 (대비 4.5:1 이상) */
+[data-testid="stBaseButton-primary"] {
+  min-height: 56px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 18px;
+  background: var(--neon);
+  color: var(--ink);
+  font-size: 17px;
+  box-shadow: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+[data-testid="stBaseButton-primary"] * {
+  color: var(--ink);
+}
+[data-testid="stBaseButton-primary"] span[data-has-shortcut] {
+  flex-direction: row-reverse; /* 화살표를 글자 오른쪽으로 */
+  gap: 12px;
+}
+/* 작은 로봇이 버튼에 앉아 있을 때(buddy.js가 data-buddy를 붙임): 로봇 자리만큼 글자를 오른쪽으로 */
+[data-testid="stBaseButton-primary"][data-buddy] span[data-has-shortcut] {
+  padding-left: 84px;
+}
+[data-testid="stBaseButton-primary"] [data-testid="stIconMaterial"] {
+  border: var(--stroke) solid var(--ink);
+  border-radius: 50%;
+  padding: 3px;
+  font-size: 18px;
+}
+[data-testid="stBaseButton-primary"]:hover {
+  background: var(--neon);
+  color: var(--ink);
+  border-color: var(--ink);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+[data-testid="stBaseButton-primary"]:active {
+  transform: none;
+  box-shadow: none;
+}
+
+/* 안내 상자(준비 중, 경고 등): 흰 바탕 + 검은 선 */
+[data-testid="stAlertContainer"] {
+  border: var(--stroke) solid var(--ink);
+  border-radius: 16px;
+  background: #FFFFFF;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------
+   번역 결과: 컴퓨터로 타자 친 종이 (레퍼런스: 접힌 종이 + 찢어진 종이)
+   - 1번(해석)은 오른쪽 위가 접힌 종이, 아래 끝은 톱니처럼 찢김
+   - 2~4번은 그 밑으로 찢어진 종이가 한 장씩 이어짐 (윗부분은 앞 종이 밑에 깔림)
+   - 제목 아래에는 '-------' 줄을 타자로 친 것처럼 그음
+   ------------------------------------------------------------ */
+.st-key-result {
+  margin-top: 1.2rem;
+  gap: 16px;
+}
+.st-key-result > div:first-child {
+  margin-bottom: 8px;
+}
+.st-key-result > div:first-child p {
+  font-size: 20px;
+}
+
+[class*="st-key-card-"] {
+  --tooth: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M0 0H14V1L7 8L0 1Z' fill='white'/%3E%3Cpath d='M0 1L7 8L14 1' fill='none' stroke='%23111111' stroke-width='1.5' stroke-linejoin='miter'/%3E%3C/svg%3E");
+  position: relative;
+  overflow: visible !important;
+  border: var(--stroke) solid var(--ink);
+  border-bottom: none;
+  border-radius: 0;
+  background: #FFFFFF;
+  padding: 1.5rem 1.8rem 1.4rem !important;
+}
+/* 아래 끝: 찢어진 톱니 (흰 면 + 검은 선) */
+[class*="st-key-card-"]::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: calc(var(--stroke) * -1);
+  right: calc(var(--stroke) * -1);
+  height: 9px;
+  background: var(--tooth) repeat-x left top;
+}
+/* 뒤 종이가 앞 종이 밑에 깔리도록 겹쳐 쌓음 (앞 종이가 위) */
+.st-key-card-0 { z-index: 4; }
+.st-key-card-1 { z-index: 3; }
+.st-key-card-2 { z-index: 2; }
+.st-key-card-3 { z-index: 1; }
+.st-key-card-1,
+.st-key-card-2,
+.st-key-card-3 {
+  border-top: none;
+  margin-top: -24px; /* 위쪽을 앞 종이의 톱니 밑으로 밀어 넣음 */
+  padding-top: 2.4rem !important;
+}
+/* 1번 종이: 오른쪽 위 모서리가 접힘 (바깥 삼각형은 바탕색으로 가리고, 접힌 면 + 대각선) */
+.st-key-card-0::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--stroke) * -1);
+  right: calc(var(--stroke) * -1);
+  width: 30px;
+  height: 30px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30'%3E%3Cpath d='M0 0H30V30Z' fill='%23F4F4EF'/%3E%3Cpath d='M0.75 0.75V29.25H29.25Z' fill='white' stroke='%23111111' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* 제목: 타자 친 글자 + 그 아래 '-------' 줄 */
+[class*="st-key-card-"] > div:first-child {
+  flex-direction: column;
+}
+[class*="st-key-card-"] > div:first-child strong {
+  font-weight: 400;
+  font-size: 17px;
+}
+[class*="st-key-card-"] > div:first-child::after {
+  content: "--------------------------------------------------------------------------------------------------------------------------------";
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--ink);
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* 줄바꿈: 한글 낱말이 중간에서 끊기지 않게, 줄 끝이 들쭉날쭉하지 않게 */
+[class*="st-key-card-"] p,
+[class*="st-key-card-"] li,
+.st-key-result-bubble p {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+[class*="st-key-card-"] p,
+[class*="st-key-card-"] li {
+  color: var(--ink);
+  line-height: 1.7;
+}
+
+/* 결과가 나타날 때: 카드가 위에서부터 하나씩 툭툭 떠오름 */
+@keyframes card-pop {
+  from { opacity: 0; transform: translateY(18px) rotate(-1deg); }
+  70% { opacity: 1; transform: translateY(-3px) rotate(0.3deg); }
+  to { opacity: 1; transform: none; }
 }
 [class*="st-key-card-"] {
-  transform-origin: 50% 100%;
-  animation: card-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: card-pop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
-.st-key-card-1 { animation-delay: 0.08s; }
-.st-key-card-2 { animation-delay: 0.16s; }
-.st-key-card-3 { animation-delay: 0.24s; }
+.st-key-card-0 { animation-delay: 0.05s; }
+.st-key-card-1 { animation-delay: 0.18s; }
+.st-key-card-2 { animation-delay: 0.31s; }
+.st-key-card-3 { animation-delay: 0.44s; }
 
 /* 컴퓨터에서 "애니메이션 줄이기"를 켰으면 움직이지 않기 */
 @media (prefers-reduced-motion: reduce) {
   [class*="st-key-card-"] { animation: none; }
 }
 
-/* 카드 본문 줄 간격 */
-[class*="st-key-card-"] p,
-[class*="st-key-card-"] li {
-  line-height: 1.7;
+/* 회신 초안 복사 상자: 옅은 회색 + 검은 선 */
+.st-key-card-3 [data-testid="stCode"] pre {
+  background: var(--fill) !important;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 12px;
 }
-
-/* 회신 초안 복사 상자: 코드 글꼴 대신 본문 글꼴로 */
 .st-key-card-3 pre,
 .st-key-card-3 code {
-  font-family: "Pretendard", sans-serif !important;
-  font-size: 0.95rem !important;
+  font-size: 1rem !important;
   line-height: 1.7 !important;
   white-space: pre-wrap !important;
+  color: var(--ink) !important;
 }
 
-/* 같은 줄의 두 카드 높이를 맞추기 */
-[data-testid="stLayoutWrapper"]:has(> [class*="st-key-card-"]) {
-  flex: 1 1 auto;
+/* 작은 로봇 자리: 로봇은 '번역하기' 버튼 위에 겹쳐 그려지므로 입력 화면에서는 자리를 차지하지 않게 */
+.st-key-buddy-slot {
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* 번역 결과: 제목 아래에서 로봇(왼쪽 빈 자리)이 말풍선으로 요약을 말해줌 */
+.st-key-result-talk {
+  gap: 4px;
+  margin-bottom: 30px; /* 로봇 바닥 그림자가 종이에 닿지 않게 */
+}
+.st-key-result-talk {
+  flex-wrap: nowrap !important;
+}
+/* 가로 줄 안에서 Streamlit이 칸마다 감싸는 상자: 로봇 칸은 고정 폭, 말풍선 칸은 나머지 전부 */
+.st-key-result-talk > div:has(.st-key-result-robot) {
+  flex: 0 0 132px !important;
+}
+.st-key-result-talk > div:has(.st-key-result-bubble) {
+  flex: 1 1 0 !important;
+  min-width: 0;
+}
+.st-key-result-robot {
+  height: 132px;
+}
+.st-key-result-bubble {
+  position: relative;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 18px;
+  background: #FFFFFF;
+  padding: 1rem 1.3rem !important;
+}
+.st-key-result-bubble p {
+  margin: 0;
+  line-height: 1.7;
+}
+/* 말풍선 꼬리 (레퍼런스: 왼쪽 아래 모서리에서 로봇 쪽으로 휘어 나온 꼬리)
+   왼쪽 선이 내려오다 바깥으로 휘어 뾰족해지고, 다시 'ㅅ'처럼 올라갔다 아랫선으로 이어짐.
+   모서리를 바탕색으로 가린 뒤 흰 꼬리 + 검은 선을 그 위에 그림 */
+.st-key-result-bubble {
+  border-bottom-left-radius: 0;
+}
+.st-key-result-bubble::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--stroke) * -1 - 14px);
+  bottom: calc(var(--stroke) * -1);
+  width: 40px;
+  height: 30px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='30'%3E%3Cpath d='M14 8H40V30H14Z' fill='%23F4F4EF'/%3E%3Cpath d='M14.75 0V8Q14.75 26 1 29.25Q13 29.5 20 20Q25 29.25 40 29.25V0Z' fill='white'/%3E%3Cpath d='M14.75 0V8Q14.75 26 1 29.25Q13 29.5 20 20Q25 29.25 40 29.25' fill='none' stroke='%23111111' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+@media (max-width: 720px) {
+  .st-key-result-talk > div:has(.st-key-result-robot) {
+    flex-basis: 84px !important;
+  }
+  .st-key-result-robot {
+    height: 110px;
+  }
 }

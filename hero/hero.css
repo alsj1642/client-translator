@@ -1,115 +1,117 @@
-/* 맨 위 소개 영역 꾸미기. 이 영역은 따로 떨어진 상자라서 styles.css가 아니라 여기서 꾸밉니다. */
+/* 맨 위 소개 영역 꾸미기. 이 영역은 따로 떨어진 상자라서 styles.css가 아니라 여기서 꾸밉니다.
+   화면 너비를 꽉 채우고 스크롤해도 제자리에 머무는 건 styles.css의 .st-key-hero에서 합니다. */
 
+/* 흰 배경, 검정 글자. 화면 너비/첫 화면 높이를 채움 */
 .hero {
-  --pad: 40px;
-  --ink: #0E0E0E;
-  --line: rgba(14, 14, 14, 0.12);
-  position: relative;
-  height: 560px;
-  overflow: hidden;
-  border-radius: 16px;
-  isolation: isolate;
-  color: var(--ink);
-  /* 그림을 못 그리는 환경에서 보이는 배경 */
-  background: linear-gradient(135deg, #BFDDF2 0%, #DCEAF3 45%, #FBF7EC 100%);
-  font-family: "Pretendard", sans-serif;
+  --robot: min(560px, 62vw, 64vh); /* 로봇 크기 */  --frost: 0; /* 0 = 또렷, 1 = 불투명 유리가 다 덮임. hero.js가 스크롤에 맞춰 바꿈 */
+  height: 100vh;
+  height: 100svh; /* 주소창이 있는 휴대폰은 svh 기준 */
+  min-height: 560px;
+  background: #FFFFFF;
+  color: #0E0E0E;
+  /* 픽셀 글꼴 Mona12: 한글은 한국어 글자 모양, 이모지는 Mona12 픽셀 컬러 이모지. 글꼴 파일은 hero.js가 불러옴 */
+  font-family: "Mona12 Text KR", "Mona12 Color Emoji", "Mona12", "Pretendard", sans-serif;
+  font-weight: 400; /* 굵은 글꼴(700) 말고 기본 굵기 */
   word-break: keep-all;
 }
-.hero[data-theme="dark"] {
-  --ink: #F2F1EC;
-  --line: rgba(242, 241, 236, 0.14);
-  background: linear-gradient(135deg, #0B0D14 0%, #131A2E 100%);
+
+/* 안의 내용 전체. 스크롤하면 살짝 작아지며 뒤로 물러남 */
+.hero-box {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  transform: scale(calc(1 - var(--frost) * 0.04));
+  transform-origin: 50% 30%;
 }
 
-.mono {
-  font-family: "JetBrains Mono", "Pretendard", ui-monospace, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.75;
-  letter-spacing: 0.01em;
-}
-
-.hero-canvas {
+/* 불투명 유리: 스크롤할수록 흐림과 뿌연 흰빛이 짙어짐 */
+.hero-frost {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  z-index: 0;
+  z-index: 4;
+  pointer-events: none;
+  backdrop-filter: blur(calc(var(--frost) * 22px)) saturate(calc(1 + var(--frost) * 0.3));
+  -webkit-backdrop-filter: blur(calc(var(--frost) * 22px)) saturate(calc(1 + var(--frost) * 0.3));
+  background: rgba(255, 255, 255, calc(var(--frost) * 0.3));
 }
 
-/* 격자선 */
-.hero-grid { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.line-v, .line-h, .plus { position: absolute; display: block; }
-.line-v { top: 0; bottom: 0; width: 1px; background: var(--line); }
-.line-h { left: 0; right: 0; height: 1px; background: var(--line); }
-.v1 { left: calc(var(--pad) - 12px); }
-.v2 { left: 50%; }
-.v3 { right: calc(var(--pad) - 12px); }
-.h1 { top: 34%; }
-.h2 { top: 70%; }
-.plus { width: 13px; height: 13px; transform: translate(-50%, -50%); }
-.plus::before, .plus::after { content: ""; position: absolute; background: var(--ink); opacity: 0.45; }
-.plus::before { left: 6px; top: 0; width: 1px; height: 13px; }
-.plus::after { top: 6px; left: 0; height: 1px; width: 13px; }
-.p1, .p4 { left: calc(var(--pad) - 12px); }
-.p2, .p5 { left: 50%; }
-.p3, .p6 { left: calc(100% - var(--pad) + 12px); }
-.p1, .p2, .p3 { top: 34%; }
-.p4, .p5, .p6 { top: 70%; }
+/* 왼쪽 위 이름 */
+.hero-top {
+  position: absolute;
+  z-index: 3;
+  top: 28px;
+  left: clamp(20px, 4vw, 56px);
+  pointer-events: none;
+}
+.brand { font-size: 18px; font-weight: 700; } /* 서비스 이름만 굵게 (Mona12 Bold) */
 
-/* 글자는 그림 위에 얹지만, 마우스는 그림이 받도록 */
-.hero-top, .hero-intro, .hero-title, .hero-bottom {
+/* 큰 카피: 가운데 정렬, 로봇 뒤(아래층). 줄마다 가운데 빈칸이 로봇 자리라 로봇이 글자 사이에 들어감 */
+.hero-title {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--robot) * 0.12);
+  /* 화면 폭을 꽉 채움: 아랫줄('눈치껏👀 번역해드릴게요👌')은 Mona12에서 글자 크기의 12.33배 폭이라,
+     양옆 여백을 뺀 화면 폭 ÷ 12.45 = 아랫줄이 양 끝까지 차는 크기 */
+  --side: clamp(16px, 2.6vw, 40px);
+  padding: 0 var(--side);
+  font-size: calc((100vw - var(--side) * 2) / 12.45);
+  font-weight: 400;
+  line-height: 1.1;
+  pointer-events: none;
+}
+/* 윗줄: '모호한'과 '피드백🤔'이 로봇 양옆에 바짝 붙음 (가운데 칸 = 로봇 머리 폭쯤) */
+.hero-title .line {
+  display: grid;
+  grid-template-columns: 1fr calc(var(--robot) * 0.5) 1fr;
+  align-items: center;
+  white-space: nowrap;
+}
+.hero-title .left { grid-column: 1; text-align: right; }
+.hero-title .right { grid-column: 3; text-align: left; }
+/* 아랫줄: 통째로 가운데 정렬 → 양 끝까지 꽉 참 */
+.hero-title .line.single {
+  display: block;
+  text-align: center;
+}
+
+/* 3D 로봇: 화면 가운데, 큰 카피 위 */
+.hero-robot {
   position: absolute;
   z-index: 2;
-  left: var(--pad);
-  right: var(--pad);
-  margin: 0;
+  left: 50%;
+  top: 50%;
+  width: var(--robot);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+}
+.hero-robot:active { cursor: grabbing; }
+
+/* 아래 가운데 안내: 아래쪽에 걸쳐 보이는 박스(120px) 바로 위 */
+.hero-bottom {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: calc(120px + 20px);
+  text-align: center;
+  font-size: 16px;
   pointer-events: none;
 }
 
-.hero-top {
-  top: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 750; letter-spacing: 0.01em; }
-.steps { display: flex; gap: 36px; margin: 0; padding: 0; list-style: none; }
-
-.hero-intro {
-  top: 80px;
-  display: grid;
-  grid-template-columns: 1fr 1fr 2fr;
-  gap: 24px;
-  align-items: start;
-}
-.hero-intro p { margin: 0; }
-.intro-lead { font-size: 24px; font-weight: 550; line-height: 1.3; letter-spacing: -0.01em; }
-.intro-desc { max-width: 30em; }
-
-.hero-title {
-  top: auto;
-  bottom: 88px;
-  font-size: clamp(40px, 6.6vw, 76px);
-  font-weight: 800;
-  line-height: 1.04;
-  letter-spacing: -0.035em;
-}
-
-.hero-bottom {
-  bottom: 22px;
-  display: flex;
-  justify-content: space-between;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 좁은 화면 (휴대폰) */
+/* 좁은 화면 (휴대폰): 글자가 작아서 로봇에 가려지지 않게,
+   첫 줄은 로봇 위, 둘째 줄은 로봇 아래에 둠 (두 줄 모두 화면 폭을 꽉 채움) */
 @media (max-width: 720px) {
-  .hero { --pad: 20px; height: 600px; }
-  .steps { display: none; }
-  .hero-intro { top: 70px; grid-template-columns: 1fr; gap: 12px; }
-  .intro-motto { display: none; }
-  .hero-title { bottom: 64px; font-size: clamp(34px, 10vw, 44px); }
-  .hero-bottom .coords { display: none; }
-  .v2, .p2, .p5 { display: none; }
+  .hero { --robot: min(300px, 76vw, 44vh); }
+  .hero-top { top: 22px; }
+  .hero-title { gap: calc(var(--robot) * 0.78); }
+  /* 윗줄은 로봇 위에 있으니 가운데 칸 없이 붙여서 가운데 정렬 */
+  .hero-title .line { grid-template-columns: auto auto; justify-content: center; column-gap: 0.35em; }
+  .hero-title .left, .hero-title .right { grid-column: auto; }
 }

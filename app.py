@@ -99,6 +99,7 @@ def split_sections(text):
 
 
 def render_translate_tab():
+    """ 번역 탭을 그리고, 작은 로봇 표정에 쓸 상태를 돌려줍니다: "idle"(평소), "result"(결과 나옴), "error"(오류) """
     feedback = st.text_area(
         "클라이언트 피드백",
         height=160,
@@ -110,15 +111,15 @@ def render_translate_tab():
     with left:
         st.caption(":material/lock: 실명·연락처·회사명은 지우고 넣어주세요.")
     with right:
-        clicked = st.button("번역하기", type="primary", icon=":material/translate:", use_container_width=True)
+        clicked = st.button("번역하기", type="primary", icon=":material/north_east:", use_container_width=True)
 
     if not clicked:
-        return
+        return "idle"
 
     # 1) 입력이 비어 있으면 AI를 부르지 않고 안내만
     if not feedback.strip():
         st.warning("눈치챌 문장이 아직 없어요. 피드백을 입력해주세요.")
-        return
+        return "error"
 
     # 2) API 키 확인
     api_key = load_api_key()
@@ -128,13 +129,13 @@ def render_translate_tab():
             "OPENAI_API_KEY= 뒤에 키를 붙여넣고 저장한 뒤 다시 눌러주세요. "
             "배포 사이트라면 앱 설정의 Secrets에 OPENAI_API_KEY를 넣어주세요."
         )
-        return
+        return "error"
 
     # 3) 프롬프트 파일 확인
     system_prompt = load_prompt()
     if not system_prompt:
         st.error(f"프롬프트 파일({PROMPT_FILE})을 찾을 수 없어요. 파일 이름과 위치를 확인해주세요.")
-        return
+        return "error"
 
     # 4) AI 호출
     with st.spinner("눈치 보는 중…"):
@@ -142,10 +143,11 @@ def render_translate_tab():
 
     if error:
         st.error(error)
-        return
+        return "error"
 
     # 5) 결과 카드 4개로 보여주기
     render_result(result)
+    return "result"
 
 
 # 카드별 아이콘과 색 (색 이름은 .streamlit/config.toml의 테마 색)
@@ -157,22 +159,61 @@ CARD_STYLES = [
 ]
 
 
+KOREAN_COUNTS = ["", "한", "두", "세", "네", "다섯", "여섯", "일곱", "여덟", "아홉", "열"]
+
+
+def count_items(text, by_sentence=False):
+    """
+    항목 개수를 셉니다: 글머리(-, *, 1.)가 붙은 줄 수 → 없으면 줄 수.
+    by_sentence=True면 한 줄짜리 글은 문장 수로 셉니다.
+    """
+    lines = [l for l in text.splitlines() if l.strip()]
+    bullets = [l for l in lines if re.match(r"^\s*([-*•]|\d+[.)])\s", l)]
+    if bullets:
+        return len(bullets)
+    if len(lines) == 1 and by_sentence:
+        return len(re.split(r"(?<=[.!?])\s+", lines[0].strip()))
+    return len(lines)
+
+
+def summarize(sections):
+    """
+    로봇 말풍선에 넣을 짧은 요약. AI를 한 번 더 부르지 않고 결과에서 개수만 셉니다.
+    예) "번역을 마쳤어요. 해석은 세 가지, 부딪히는 요구는 한 건이에요."
+    """
+    say = lambda n: KOREAN_COUNTS[n] if n < len(KOREAN_COUNTS) else str(n)
+    meanings = max(1, count_items(sections[0], by_sentence=True))
+
+    conflicts = sections[1].strip().strip('"').strip()
+    if conflicts == "없음":
+        conflict_text = "부딪히는 요구는 없어요."
+    else:
+        conflict_text = f"부딪히는 요구는 {say(max(1, count_items(conflicts)))} 건이에요."
+    return f"번역을 마쳤어요. 해석은 {say(meanings)} 가지, {conflict_text}"
+
+
 def render_result(result):
     sections = split_sections(result)
     if sections is None:
         # 4개로 나눌 수 없는 답변(추가 정보 요청, 개인정보 안내 등)은 그대로 보여줍니다.
-        with st.container(border=True, key="card-notice"):
+        with st.container(key="card-notice"):
             st.markdown("**:material/info: AI 안내**")
             st.markdown(result)
         return
 
-    st.markdown("**번역 결과**")
-    for row in (0, 2):
-        cols = st.columns(2, gap="medium")
-        for col, idx in zip(cols, (row, row + 1)):
+    # 제목 → 로봇이 말풍선으로 요약 → 4가지 항목을 위에서부터 차례대로 (위아래로 읽기)
+    with st.container(key="result"):
+        st.markdown("**번역 결과**")
+        # 왼쪽 빈 자리(result-robot)에 입력 화면의 작은 로봇이 옮겨와 앉습니다 (buddy/buddy.js)
+        with st.container(key="result-talk", horizontal=True, vertical_alignment="center"):
+            with st.container(key="result-robot"):
+                st.html("<div></div>")
+            with st.container(key="result-bubble"):
+                st.markdown(summarize(sections))
+        for idx, title in enumerate(SECTION_TITLES):
             icon, color = CARD_STYLES[idx]
-            with col, st.container(border=True, key=f"card-{idx}"):
-                st.markdown(f"**:{color}[{icon} {idx + 1}. {SECTION_TITLES[idx]}]**")
+            with st.container(key=f"card-{idx}"):
+                st.markdown(f"**:{color}[{icon} {idx + 1}. {title}]**")
                 body = sections[idx]
                 if idx == 1 and body.strip().strip('"').strip() == "없음":
                     st.markdown(":gray[:material/check_circle: 서로 부딪히는 요구는 없어요.]")
@@ -186,9 +227,9 @@ def render_result(result):
     st.caption(f"모델: {MODEL_NAME} · 프롬프트: {PROMPT_FILE}")
 
 
-def render_schedule_tab():
-    # 일정 탭은 나중에 추가할 예정입니다. 지금은 자리만 잡아둡니다.
-    st.info("일정 탭은 준비 중이에요.", icon=":material/construction:")
+def render_vent_tab():
+    # 하소연 탭은 나중에 추가할 예정입니다. 지금은 자리만 잡아둡니다.
+    st.info("하소연 탭은 준비 중이에요.", icon=":material/construction:")
 
 
 def load_styles():
@@ -200,11 +241,28 @@ def load_styles():
 
 LOGO_PATH = BASE_DIR / "assets" / "logo-mark.svg"
 HERO_DIR = BASE_DIR / "hero"
+BUDDY_DIR = BASE_DIR / "buddy"
+
+# 3D 로봇이 쓰는 그림 라이브러리(Three.js)를 받아올 주소. 버전은 로봇 파일과 맞춰둡니다.
+THREE_CDN = "https://cdn.jsdelivr.net/npm/three@0.186.1"
+
+
+def load_robot_code():
+    """
+    hero/robot-character.js(3D 로봇)를 읽어서, 라이브러리 이름('three')을 인터넷 주소로 바꿔 돌려줍니다.
+    원본 파일은 그대로 두고, 읽은 내용만 바꿉니다. 파일이 없으면 None (로봇 없이 소개 영역만 보여요).
+    """
+    path = HERO_DIR / "robot-character.js"
+    if not path.exists():
+        return None
+    code = path.read_text(encoding="utf-8")
+    code = re.sub(r"from 'three/addons/([^']+)'", rf"from '{THREE_CDN}/examples/jsm/\1/+esm'", code)
+    return code.replace("from 'three'", f"from '{THREE_CDN}/+esm'")
 
 
 def render_hero():
     """
-    맨 위 소개 영역 (커서 물결 효과 + 말랑한 말풍선).
+    맨 위 소개 영역 (그라데이션 배경 + 3D 로봇 눈치봇).
     모양과 움직임은 hero/ 폴더의 파일에 있습니다. 파일이 없으면 제목만 보여줍니다.
     """
     files = [HERO_DIR / name for name in ("hero.html", "hero.css", "hero.js")]
@@ -213,7 +271,20 @@ def render_hero():
         return
     html, css, js = (f.read_text(encoding="utf-8") for f in files)
     hero = st.components.v2.component("hero", html=html, css=css, js=js)
-    hero(key="hero")
+    hero(data={"robotCode": load_robot_code()}, key="hero")
+
+
+def render_buddy(status):
+    """
+    입력 화면 옆을 천천히 돌아다니는 작은 로봇. status("idle"/"result"/"error")에 맞춰 표정이 바뀌고,
+    결과가 나오면 멈춥니다. 모양과 움직임은 buddy/ 폴더의 파일에 있습니다. 파일이 없으면 그냥 건너뜁니다.
+    """
+    files = [BUDDY_DIR / name for name in ("buddy.html", "buddy.js")]
+    if not all(f.exists() for f in files):
+        return
+    html, js = (f.read_text(encoding="utf-8") for f in files)
+    buddy = st.components.v2.component("buddy", html=html, js=js)
+    buddy(data={"robotCode": load_robot_code(), "status": status}, key="buddy")
 
 
 def main():
@@ -225,11 +296,15 @@ def main():
     load_styles()
     render_hero()
 
-    translate_tab, schedule_tab = st.tabs([":material/translate: 번역", ":material/calendar_month: 일정"])
+    translate_tab, vent_tab = st.tabs([":material/translate: 번역", ":material/sentiment_dissatisfied: 하소연"])
     with translate_tab:
-        render_translate_tab()
-    with schedule_tab:
-        render_schedule_tab()
+        # 작은 로봇 자리를 맨 앞에 먼저 잡아둬야, 다시 그려질 때 로봇이 새로 만들어지지 않고 이어져요
+        buddy_slot = st.container(key="buddy-slot")
+        status = render_translate_tab()
+        with buddy_slot:
+            render_buddy(status)
+    with vent_tab:
+        render_vent_tab()
 
 
 main()
