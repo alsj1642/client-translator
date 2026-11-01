@@ -1,7 +1,8 @@
-/* 앱 화면 꾸미기. 색 자체는 .streamlit/config.toml에서 정합니다. */
+/* 앱 화면 꾸미기. 색 자체는 .streamlit/config.toml에서 정합니다.
+   맨 위 소개 영역은 따로 떨어진 상자라서 hero/hero.css에서 꾸밉니다. */
 
 /* 한글이 단어 중간에서 줄바꿈되지 않도록 */
-.stApp p, .stApp li, .stApp pre, .hero-title, .hero-sub {
+.stApp p, .stApp li, .stApp pre {
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
@@ -9,43 +10,12 @@
 /* 본문 폭을 읽기 좋은 너비로 */
 .block-container {
   max-width: 1080px;
-  padding-top: 4.5rem;
+  padding-top: 4rem;
 }
 
-/* 상단 소개 영역 */
-.hero-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.9rem;
-}
-.hero-brand img {
-  border-radius: 11px;
-  box-shadow: 0 4px 14px rgba(67, 56, 202, 0.28);
-}
-.hero-brand .hero-eyebrow {
-  margin-bottom: 0;
-}
-.hero-eyebrow {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.6;
-  margin-bottom: 0.25rem;
-}
-.hero-title {
-  font-size: 2.1rem;
-  font-weight: 750;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin: 0 0 0.5rem;
-}
-.hero-sub {
-  font-size: 1.02rem;
-  opacity: 0.72;
-  margin: 0 0 1.5rem;
-  line-height: 1.6;
+/* 소개 영역과 탭 사이 간격 */
+.st-key-hero {
+  margin-bottom: 0.75rem;
 }
 
 /* 결과 카드: 왼쪽 색 띠로 4가지 항목을 구분 */
@@ -54,11 +24,39 @@
   padding: 1.1rem 1.25rem 1.25rem !important;
   height: 100%;
 }
-.st-key-card-0 { border-left-color: #6366F1 !important; }  /* 해석 */
+.st-key-card-0 { border-left-color: #3B82F6 !important; }  /* 해석 */
 .st-key-card-1 { border-left-color: #F59E0B !important; }  /* 충돌하는 요구 */
 .st-key-card-2 { border-left-color: #14B8A6 !important; }  /* 되물을 질문 */
-.st-key-card-3 { border-left-color: #8B5CF6 !important; }  /* 회신 초안 */
+.st-key-card-3 { border-left-color: #84CC16 !important; }  /* 회신 초안 */
 .st-key-card-notice { border-left-color: #94A3B8 !important; }
+
+/* 카드가 나타날 때: 아래에서 휘어진 채 떠올랐다가 반듯하게 펴짐 */
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: perspective(900px) translateY(36px) rotateX(-16deg) skewY(2.5deg);
+  }
+  60% {
+    opacity: 1;
+    transform: perspective(900px) translateY(-4px) rotateX(2deg) skewY(-0.4deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+[class*="st-key-card-"] {
+  transform-origin: 50% 100%;
+  animation: card-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.st-key-card-1 { animation-delay: 0.08s; }
+.st-key-card-2 { animation-delay: 0.16s; }
+.st-key-card-3 { animation-delay: 0.24s; }
+
+/* 컴퓨터에서 "애니메이션 줄이기"를 켰으면 움직이지 않기 */
+@media (prefers-reduced-motion: reduce) {
+  [class*="st-key-card-"] { animation: none; }
+}
 
 /* 카드 본문 줄 간격 */
 [class*="st-key-card-"] p,

@@ -10,9 +10,14 @@
 - `.env` — 실제 API 키 (git 제외). `.env.example` — 키 없는 공유용 예시.
 
 ## 디자인
-- 색·글꼴·모서리는 `.streamlit/config.toml` 테마에서 정한다 (`[theme.light]` / `[theme.dark]` 둘 다 유지). 글꼴은 Pretendard.
+- 레퍼런스: https://haoqi.design/ (첫 화면 마우스 효과, 글자 배치, 스크롤 효과의 느낌만 참고). 디자인 기준 문서(DESIGN.md)는 아직 없다. 만들어지면 이 섹션보다 우선한다.
+- 색·글꼴·모서리는 `.streamlit/config.toml` 테마에서 정한다 (`[theme.light]` / `[theme.dark]` 둘 다 유지). 글꼴은 Pretendard. 밝은 화면은 크림색 배경 + 검정 버튼, 어두운 화면은 검정 배경 + 파란 버튼.
 - 세부 모양은 `styles.css`에 둔다. 파이썬 코드 안에 CSS를 길게 쓰지 않는다.
-- 결과 카드는 `st.container(key="card-N")`로 만들고 `styles.css`의 `.st-key-card-N`으로 꾸민다.
+- 맨 위 소개 영역은 `hero/` 폴더(`hero.html`, `hero.css`, `hero.js`)에 있고, `st.components.v2`로 넣는다. 이 영역은 따로 떨어진 상자라서 `styles.css`가 닿지 않으므로 `hero/hero.css`에서 꾸민다.
+  - 커서 물결 번짐 + 로고 모양 말랑한 말풍선은 브라우저 기본 WebGL로 그린다 (외부 그림 라이브러리 없음). 그림을 못 그리면 배경색과 글자만 보인다.
+  - 화면 라벨은 영어 대신 한국어로 쓴다.
+- 움직임은 컴퓨터의 "애니메이션 줄이기" 설정(prefers-reduced-motion)을 켜면 멈춰야 한다.
+- 결과 카드는 `st.container(key="card-N")`로 만들고 `styles.css`의 `.st-key-card-N`으로 꾸민다. 나타날 때 휘었다 펴지며 떠오른다 (`card-rise`).
 - 아이콘은 이모지 대신 `:material/아이콘이름:`을 쓴다.
 - 로고는 `assets/logo-mark.svg` 하나만 쓴다 (탭 아이콘 + 상단 로고). 콘셉트: 흐릿한 말풍선(모호한 피드백) → 또렷한 말풍선(정리된 메시지). 색은 `#4338CA` + 흰색. 16px에서도 알아볼 수 있게 단순한 도형만 쓴다.
 - 버튼 글자와 배경 대비는 4.5:1 이상을 유지한다 (밝은/어두운 화면 모두).

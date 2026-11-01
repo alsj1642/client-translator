@@ -104,6 +104,9 @@ PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일
 - **색, 글꼴, 모서리 둥글기**: `.streamlit/config.toml`
   (`[theme.light]`는 밝은 화면, `[theme.dark]`는 컴퓨터가 다크 모드일 때 색)
 - **카드 왼쪽 색 띠, 여백 등 세부 모양**: `styles.css`
+- **맨 위 소개 영역 (글자, 배치, 물결·말풍선 움직임)**: `hero/` 폴더
+  - 글자 바꾸기: `hero/hero.html` · 배치·크기: `hero/hero.css` · 움직임: `hero/hero.js`
+  - 저장 후 브라우저에서 새로고침하면 반영돼요.
 
 `config.toml`을 고친 뒤에는 앱을 껐다가(`Ctrl + C`) 다시 실행해야 반영돼요.
 메모장으로 저장할 때 인코딩은 **UTF-8**로 저장해주세요.
@@ -187,7 +190,7 @@ PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일
 - 배포 후에 키를 바꾸려면: 앱 화면 오른쪽 아래 **Manage app** → 점 세 개 → **Settings** → **Secrets**.
 - 키는 GitHub에 절대 올리지 마세요. 배포 사이트의 Secrets에만 넣습니다.
 - 앱은 Secrets를 먼저 읽고, 없으면 내 컴퓨터의 `.env`를 읽어요. 그래서 내 컴퓨터에서는 지금처럼 `.env`만 있으면 됩니다.
-- 글꼴과 로봇 시험용 3D 라이브러리는 인터넷(jsDelivr CDN)에서 불러와요. 이 주소가 막힌 환경에서는 글꼴이 기본 글꼴로 보이고 로봇이 뜨지 않을 수 있어요.
+- 글꼴과 로봇 시험용 3D 라이브러리는 인터넷(jsDelivr CDN)에서, 소개 영역의 타자기 느낌 글꼴(JetBrains Mono)은 Google Fonts에서 불러와요. 이 주소가 막힌 환경에서는 글꼴이 기본 글꼴로 보이고 로봇이 뜨지 않을 수 있어요.
 
 ## 폴더 구성
 
@@ -195,6 +198,7 @@ PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일
 client-translator/
 ├─ app.py             # 앱 본체
 ├─ styles.css         # 화면 세부 디자인 (카드 색 띠 등)
+├─ hero/              # 맨 위 소개 영역 (글자 hero.html, 모양 hero.css, 움직임 hero.js)
 ├─ assets/
 │  └─ logo-mark.svg   # 앱 로고 (브라우저 탭 아이콘 + 상단 로고)
 ├─ .streamlit/

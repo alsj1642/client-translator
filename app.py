@@ -200,14 +200,29 @@ def load_styles():
 
 
 LOGO_PATH = BASE_DIR / "assets" / "logo-mark.svg"
+HERO_DIR = BASE_DIR / "hero"
 
 
-def logo_img_tag(size):
-    """ 로고 SVG를 화면에 넣을 수 있는 <img> 태그로 만듭니다. 파일이 없으면 빈 문자열. """
+def logo_data_uri():
+    """ 로고 SVG를 화면에 넣을 수 있는 주소(data URI)로 만듭니다. 파일이 없으면 빈 문자열. """
     if not LOGO_PATH.exists():
         return ""
     data = base64.b64encode(LOGO_PATH.read_bytes()).decode()
-    return f'<img src="data:image/svg+xml;base64,{data}" width="{size}" height="{size}" alt="">'
+    return f"data:image/svg+xml;base64,{data}"
+
+
+def render_hero():
+    """
+    맨 위 소개 영역 (커서 물결 효과 + 말랑한 말풍선).
+    모양과 움직임은 hero/ 폴더의 파일에 있습니다. 파일이 없으면 제목만 보여줍니다.
+    """
+    files = [HERO_DIR / name for name in ("hero.html", "hero.css", "hero.js")]
+    if not all(f.exists() for f in files):
+        st.title("클라이언트 피드백 번역기")
+        return
+    html, css, js = (f.read_text(encoding="utf-8") for f in files)
+    hero = st.components.v2.component("hero", html=html, css=css, js=js)
+    hero(data={"logo": logo_data_uri()}, key="hero")
 
 
 def main():
@@ -217,15 +232,7 @@ def main():
         layout="wide",
     )
     load_styles()
-    st.markdown(
-        f"""
-        <div class="hero-brand">{logo_img_tag(44)}<span class="hero-eyebrow">For Designers</span></div>
-        <div class="hero-title">클라이언트 피드백 번역기</div>
-        <p class="hero-sub">모호한 피드백을 붙여넣으면 가능한 해석, 충돌하는 요구,
-        되물을 질문, 회신 초안까지 한 번에 정리해드려요.</p>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_hero()
 
     translate_tab, schedule_tab = st.tabs([":material/translate: 번역", ":material/calendar_month: 일정"])
     with translate_tab:
