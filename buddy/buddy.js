@@ -3,6 +3,7 @@
 // - 고개 각도는 고정. 눈만 마우스 커서를 따라감. 누르면 점프 (돌려보기, 옮기기는 없음)
 // - 표정: 평소 '기본', 번역 중 '생각 중', 결과가 나오면 '정중', 오류면 '오류', 누르면 '하트'
 // 상태(status)는 앱(파이썬)이 넘겨줌: idle / result / error. 번역 중인지는 화면의 로딩 표시로 알아챔.
+// 번역이 끝나 결과가 나오면 '번역 결과' 제목까지 부드럽게 스크롤해 내려줌
 // 로봇을 버튼 안에 넣으면 로봇을 눌러도 번역이 시작되므로, body에 따로 붙이고 버튼 위치에 맞춰 겹쳐 그림.
 
 const FACES = { idle: "기본", result: "정중", error: "오류" };
@@ -30,11 +31,20 @@ function createBuddy(root, robotCode) {
   let removed = false;
   let raf = 0;
   let face = null;
+  let waiting = false; // 번역 중이었는지 (끝나고 결과가 나오면 결과로 스크롤)
 
   const scroller = () => document.querySelector('[data-testid="stMain"]');
   const panel = () => host.closest('[role="tabpanel"]') || document;
   const button = () => panel().querySelector('[data-testid="stBaseButton-primary"]');
   const resultSpot = () => panel().querySelector(".st-key-result-robot");
+
+  function scrollToResult() {
+    const box = panel().querySelector(".st-key-result");
+    const main = scroller();
+    if (!box || !main) return;
+    const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    main.scrollTo({ top: main.scrollTop + box.getBoundingClientRect().top - 24, behavior: smooth ? "smooth" : "instant" });
+  }
 
   function visibleNow() {
     if (!anchor.getClientRects().length) return 0; // 다른 탭을 보고 있음
@@ -70,6 +80,13 @@ function createBuddy(root, robotCode) {
 
     // 표정: 번역 중(로딩 표시가 보임)이면 '생각 중', 아니면 상태에 맞게
     const thinking = !!document.querySelector('[data-testid="stSpinner"]');
+
+    // 번역 중 → 결과가 나오면 결과 화면으로 한 번 스크롤. 오류면 스크롤하지 않음
+    if (thinking) waiting = true;
+    else if (waiting && status === "result" && spotEl) {
+      waiting = false;
+      scrollToResult();
+    } else if (status === "error") waiting = false;
 
     const next = thinking ? THINKING_FACE : FACES[status] || FACES.idle;
     if (next !== face) robot.setExpression((face = next));

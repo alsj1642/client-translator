@@ -19,6 +19,117 @@ const MOTION = {
 };
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+// 효과음: 소리 파일 없이 브라우저(Web Audio)에서 잡음과 짧은 음을 섞어 직접 만듦
+//   종이 구기기(바스락), 날아가기(휙), 쓰레기통에 들어가기(툭 + 뚜껑 딸깍), 불붙기(화르륵 + 타닥타닥), 꺼지기(치익)
+//   소리 크기는 VOLUME으로 한 번에 조절. 첫 클릭 때 소리 장치를 켬 (브라우저는 클릭 전에는 소리를 막음)
+const VOLUME = 0.6;
+let audio = null;
+let noiseData = null;
+function audioNow() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audio) audio = new AC();
+  if (audio.state === "suspended") audio.resume();
+  return audio;
+}
+function noiseBuffer(ac) {
+  if (!noiseData) {
+    noiseData = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+    const ch = noiseData.getChannelData(0);
+    for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+  }
+  return noiseData;
+}
+// 걸러낸 잡음 한 토막 (바스락, 휙, 화르륵 같은 소리의 재료)
+// attack: 소리가 커지는 데 걸리는 시간(초). 길면 '화르륵'처럼 부풀어 오름
+function noise(ac, { at, dur, type = "bandpass", freq, freqEnd, q = 1, gain, attack = 0.02 }) {
+  const src = ac.createBufferSource();
+  src.buffer = noiseBuffer(ac);
+  const filter = ac.createBiquadFilter();
+  filter.type = type;
+  filter.Q.value = q;
+  filter.frequency.setValueAtTime(freq, at);
+  if (freqEnd) filter.frequency.exponentialRampToValueAtTime(freqEnd, at + dur);
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(gain * VOLUME, at + Math.min(attack, dur / 3));
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  src.connect(filter).connect(g).connect(ac.destination);
+  src.start(at, Math.random() * 0.5);
+  src.stop(at + dur + 0.05);
+}
+// 짧은 음 한 토막 (툭, 딸깍 같은 소리의 재료)
+function tone(ac, { at, dur, freq, freqEnd, gain, type = "sine" }) {
+  const osc = ac.createOscillator();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, at);
+  if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, at + dur);
+  const g = ac.createGain();
+  g.gain.setValueAtTime(gain * VOLUME, at);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  osc.connect(g).connect(ac.destination);
+  osc.start(at);
+  osc.stop(at + dur + 0.05);
+}
+const SOUND = {
+  // 종이 구기기: 짧은 바스락 소리가 len초 동안 여기저기서 (뒤로 갈수록 촘촘하게)
+  crumple(len) {
+    const ac = audioNow();
+    if (!ac) return;
+    for (let i = 0; i < 26; i++) {
+      const at = ac.currentTime + Math.sqrt(Math.random()) * len;
+      noise(ac, { at, dur: 0.03 + Math.random() * 0.07, freq: 1500 + Math.random() * 3500, q: 0.8, gain: 0.12 + Math.random() * 0.18 });
+    }
+  },
+  // 날아가기: 휙 (높은 소리에서 낮은 소리로) + 뚜껑 열리는 딸깍
+  whoosh(len) {
+    const ac = audioNow();
+    if (!ac) return;
+    const t = ac.currentTime;
+    noise(ac, { at: t, dur: len, freq: 900, freqEnd: 260, q: 0.7, gain: 0.22 });
+    tone(ac, { at: t + 0.05, dur: 0.05, freq: 900, freqEnd: 500, gain: 0.08, type: "square" });
+  },
+  // 쓰레기통에 들어감: 툭 + 뚜껑 닫히는 딸깍
+  land() {
+    const ac = audioNow();
+    if (!ac) return;
+    const t = ac.currentTime;
+    tone(ac, { at: t, dur: 0.18, freq: 150, freqEnd: 60, gain: 0.45 });
+    noise(ac, { at: t, dur: 0.06, type: "highpass", freq: 1800, gain: 0.12 });
+    tone(ac, { at: t + 0.12, dur: 0.05, freq: 700, freqEnd: 420, gain: 0.1, type: "square" });
+  },
+  // 불붙기: 크게 '화르륵' (낮은 울림 + 부풀어 오르는 바람 소리 두 겹) → 타는 동안 화르륵이 몇 번 더 일렁임
+  //   + 활활 타는 낮은 소리 + 작은 타닥타닥 (화르륵이 묻히지 않게 작게)
+  burn(len) {
+    const ac = audioNow();
+    if (!ac) return;
+    const t = ac.currentTime;
+    noise(ac, { at: t, dur: 0.9, type: "lowpass", freq: 200, freqEnd: 3000, gain: 0.6, attack: 0.15 });
+    noise(ac, { at: t + 0.04, dur: 0.85, freq: 400, freqEnd: 1800, q: 0.6, gain: 0.4, attack: 0.18 });
+    noise(ac, { at: t, dur: 1.0, type: "lowpass", freq: 150, freqEnd: 420, gain: 0.45, attack: 0.1 });
+    noise(ac, { at: t + 0.2, dur: len, type: "lowpass", freq: 700, q: 0.5, gain: 0.28, attack: 0.3 });
+    for (let at = t + 0.7; at < t + len - 0.2; at += 0.35 + Math.random() * 0.1) {
+      noise(ac, { at, dur: 0.5, type: "lowpass", freq: 500, freqEnd: 1600, gain: 0.3, attack: 0.18 });
+    }
+    for (let i = 0; i < 16; i++) {
+      const at = t + 0.3 + Math.random() * len;
+      noise(ac, { at, dur: 0.015 + Math.random() * 0.025, type: "highpass", freq: 2500 + Math.random() * 3000, gain: 0.05 + Math.random() * 0.1 });
+    }
+  },
+  // 꺼지기: 치익
+  fizzle() {
+    const ac = audioNow();
+    if (!ac) return;
+    noise(ac, { at: ac.currentTime, dur: 0.6, type: "highpass", freq: 3000, freqEnd: 6500, gain: 0.12 });
+  },
+  // 새 쓰레기통이 떨어짐: 가벼운 톡
+  drop() {
+    const ac = audioNow();
+    if (!ac) return;
+    tone(ac, { at: ac.currentTime + 0.3, dur: 0.12, freq: 220, freqEnd: 110, gain: 0.25 });
+  },
+};
+
 // 구겨지는 단계: [크기 비율(종이 → 공), 가장자리가 안쪽으로 패이는 정도, 기울기(deg)]
 // 처음엔 가장자리가 쭈글쭈글해지고 → 반으로 접히듯 줄고 → 꾹 뭉쳐 공이 됨
 const CRUMPLE_STEPS = [
@@ -161,6 +272,7 @@ function createVent(root, data) {
     outline.appendChild(ghost);
     vent.appendChild(outline);
     paper.style.visibility = "hidden";
+    SOUND.crumple(MOTION.crumple / 1000);
 
     // 단계마다 크기, 울퉁불퉁함, 기울기가 바뀜 (가운데를 기준으로 줄어듦)
     const frames = CRUMPLE_STEPS.map(([scale, depth, tilt], i) => {
@@ -197,12 +309,14 @@ function createVent(root, data) {
       };
     });
     const opened = moveLid(true);
+    SOUND.whoosh(MOTION.flight / 1000);
     await ghost.animate(flight, { duration: MOTION.flight, easing: "cubic-bezier(0.3, 0, 0.7, 1)", fill: "forwards" }).finished;
     outline.remove();
     await opened;
 
     // 들어가면 뚜껑이 닫히고 쓰레기통이 살짝 흔들림. 빈 줄 종이가 다시 나타남
     moveLid(false);
+    SOUND.land();
     can.animate(
       [{ rotate: "0deg" }, { rotate: "-6deg" }, { rotate: "4deg" }, { rotate: "-2deg" }, { rotate: "0deg" }],
       { duration: 420, easing: "ease-out" },
@@ -260,11 +374,13 @@ function createVent(root, data) {
 
     // 1) 불붙음
     bin.classList.add("burning");
+    if (!reduceMotion) SOUND.burn(1.4);
     fire.animate([{ scale: 0 }, { scale: 1 }], { duration: 250 * T, easing: "ease-out", fill: "forwards" });
     await can.animate([{ filter: "brightness(1)" }, { filter: "brightness(0.25)" }], { duration: 1400 * T, fill: "forwards" }).finished;
 
     // 2) 불이 꺼지며 쓰레기통이 주저앉고 재 더미가 남음, 연기가 피어오름
     fire.animate([{ scale: 1 }, { scale: 0 }], { duration: 300 * T, easing: "ease-in", fill: "forwards" });
+    if (!reduceMotion) SOUND.fizzle();
     can.animate(
       [{ scale: "1 1", opacity: 1 }, { scale: "1.1 0.2", opacity: 0 }],
       { duration: 400 * T, easing: "ease-in", fill: "forwards" },
@@ -280,6 +396,7 @@ function createVent(root, data) {
     bin.classList.remove("burning");
 
     // 3) 재가 사라지고 새 쓰레기통이 위에서 톡 떨어짐
+    if (!reduceMotion) SOUND.drop();
     await ash.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300 * T, fill: "forwards" }).finished;
     can.getAnimations().forEach((a) => a.cancel());
     await can.animate(
