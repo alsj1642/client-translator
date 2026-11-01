@@ -20,9 +20,12 @@
 //              로봇을 담은 요소(container)를 CSS translate로 옮기고, 그 부모 영역 밖으로는 못 나감
 //   pressFace: 로봇을 눌러 점프하는 동안 보일 표정 (기본 = '정중')
 //   turnHead: 마우스 쪽으로 고개를 돌림 (기본 = 켜짐. 끄면 고개 각도는 고정, 눈만 마우스를 따라감)
+//   onReveal: 등장 효과에서 3D로 반쯤 바뀌어 눈이 보이기 시작할 때 한 번 부르는 함수 (등장 효과가 없으면 안 부름)
 //
 // 위치 옮기기: robot.getOffset() / robot.setOffset(x, y) = container를 옮긴 거리(px),
 //   robot.isHeld() = 지금 꾹 눌러서 옮기는 중인지, robot.hits(event) = 그 마우스 위치에 로봇이 있는지
+// 바라보기: robot.lookAt({ x, y }) = 화면의 그 점(px)을 바라봄, robot.lookAt('viewer') = 보는 사람(정면)을 바라봄,
+//   robot.lookAt(null) = 다시 마우스를 따라봄
 //
 // - 마우스는 로봇 위가 아니라 페이지 어디에 있든 따라봄
 // - 컴퓨터의 "애니메이션 줄이기"가 켜져 있으면 가만히 선 그림으로 멈춤 (표정은 바뀜)
@@ -159,8 +162,8 @@ const glsl = (c) => `vec3(${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)
 //   amount: 1 = 흰 윤곽선만 보임(설계도), 0 = 원래 3D 모습
 //   reveal: 이 높이보다 위쪽만 보임 (위에서부터 그려지는 효과)
 let currentBlueprint = null;
-// 등장 효과 반짝이: 윤곽선이 다 그려질 즈음(2초)부터 1.6초 동안 하나씩 터지고, 하나는 0.7초 동안 보임
-const INTRO_SPARKLE = { start: 2.0, spread: 1.6, life: 0.7 };
+// 등장 효과 반짝이: 윤곽선이 다 그려질 즈음(1.3초)부터 1초 동안 하나씩 터지고, 하나는 0.6초 동안 보임
+const INTRO_SPARKLE = { start: 1.3, spread: 1.0, life: 0.6 };
 // 등장 효과 격자 윤곽선의 촘촘함 (픽셀 느낌일 땐 선이 뭉치지 않게 듬성듬성): createRobot이 정함
 let currentGrid = { rings: 9, meridians: 16, innerRings: true };
 
@@ -374,7 +377,7 @@ function gradientTexture(size, stops) {
 // ============================================================
 export function createRobot(container, {
   background = null, rotate = false, zoom = false, halo = true, intro = false, lineColor = '#FFFFFF', lineGlow = 2.4, introPixel = 0,
-  sparkle = false, draggable = false, pressFace = '정중', turnHead = true,
+  sparkle = false, draggable = false, pressFace = '정중', turnHead = true, onReveal = null,
 } = {}) {
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let ready = false; // 모든 준비가 끝난 뒤에만 그림
@@ -760,9 +763,7 @@ export function createRobot(container, {
   function onPointerUp(e) {
     if (hold?.moving) return; // 옮기기를 마친 손 떼기는 점프로 치지 않음
     if (!downAt || Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 6) return;
-    onPointerMove(e);
-    raycaster.setFromCamera(pointer, camera);
-    if (raycaster.intersectObject(robot, true).length) jump();
+    if (hitsRobot(e)) jump();
   }
 
   // ----- 꾹 눌러서 옮기기 (draggable) -----
@@ -771,11 +772,16 @@ export function createRobot(container, {
   let hold = null; // { x, y, base, moving, timer }
   const offset = { x: 0, y: 0 };
   container.style.transition = 'scale 0.18s ease';
+  // 눈에 보이는 로봇 면(Mesh)에 닿았을 때만 (숨겨진 설계도 윤곽선은 닿는 범위가 넓어서 빼야 함)
+  const shownMesh = (hit) => {
+    for (let o = hit.object; o; o = o.parent) if (!o.visible) return false;
+    return hit.object.isMesh;
+  };
   function hitsRobot(e) {
     const rect = canvas.getBoundingClientRect();
     const p = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(p, camera);
-    return raycaster.intersectObject(robot, true).length > 0;
+    return raycaster.intersectObject(robot, true).some(shownMesh);
   }
   function startHold(e) {
     if (!draggable || blueprint.amount.value > 0 || !hitsRobot(e)) return; // 다 나타난 뒤, 로봇 위에서만
@@ -831,7 +837,7 @@ export function createRobot(container, {
   let jumpStart = null;
   let now = 0;
   let introStart = null;
-  const INTRO = { draw: 2.2, hold: 0.5, fade: 1.2 }; // 초: 윤곽선 그리기, 잠깐 멈춤, 3D로 바뀌기
+  const INTRO = { draw: 1.4, hold: 0.25, fade: 0.8 }; // 초: 윤곽선 그리기, 잠깐 멈춤, 3D로 바뀌기
   function jump() {
     if (jumpStart !== null || reduceMotion) return;
     jumpStart = now;
@@ -843,14 +849,29 @@ export function createRobot(container, {
   const toCamera = new THREE.Vector3();
   const lookPlane = new THREE.Plane();
   const lookPoint = new THREE.Vector3();
+  // 정해진 곳 바라보기 (null이면 마우스를 따라봄)
+  let lookTarget = null;
+  const targetPointer = new THREE.Vector2();
+  function lookAt(target) {
+    lookTarget = target;
+  }
   function updateLook() {
     let yaw = 0;
     let pitch = 0;
-    if (pointerInside) {
-      head.getWorldPosition(headWorld);
+    head.getWorldPosition(headWorld);
+    let aim = pointerInside ? pointer : null;
+    if (lookTarget && typeof lookTarget === 'object') {
+      const rect = canvas.getBoundingClientRect();
+      aim = targetPointer.set(((lookTarget.x - rect.left) / rect.width) * 2 - 1, -((lookTarget.y - rect.top) / rect.height) * 2 + 1);
+    }
+    if (lookTarget === 'viewer') {
+      lookPoint.subVectors(camera.position, headWorld); // 카메라 = 화면을 보는 사람
+      yaw = Math.atan2(lookPoint.x, lookPoint.z);
+      pitch = Math.atan2(lookPoint.y, Math.hypot(lookPoint.x, lookPoint.z));
+    } else if (aim) {
       toCamera.subVectors(camera.position, headWorld).normalize();
       lookPlane.setFromNormalAndCoplanarPoint(toCamera, headWorld.clone().addScaledVector(toCamera, 1.2));
-      raycaster.setFromCamera(pointer, camera);
+      raycaster.setFromCamera(aim, camera);
       if (raycaster.ray.intersectPlane(lookPlane, lookPoint)) {
         lookPoint.sub(headWorld);
         yaw = Math.atan2(lookPoint.x, lookPoint.z);
@@ -897,6 +918,11 @@ export function createRobot(container, {
       });
     }
     const solid = 1 - blueprint.amount.value; // 3D로 바뀐 정도 (0~1)
+    if (playIntro && onReveal && solid > 0.5) {
+      const call = onReveal;
+      onReveal = null; // 한 번만
+      call();
+    }
     // 격자 윤곽선: 3D로 바뀌는 동안 점점 옅어지다가 사라짐
     gridMaterial.opacity = 0.7 * blueprint.amount.value;
     gridLines.forEach((lines) => (lines.visible = blueprint.amount.value > 0.01));
@@ -1012,6 +1038,6 @@ export function createRobot(container, {
 
   return {
     setExpression, jump, dispose, expressions: EXPRESSION_NAMES,
-    getOffset: () => ({ ...offset }), setOffset, isHeld: () => !!hold?.moving, hits: hitsRobot,
+    getOffset: () => ({ ...offset }), setOffset, isHeld: () => !!hold?.moving, hits: hitsRobot, lookAt,
   };
 }

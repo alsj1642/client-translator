@@ -133,37 +133,121 @@
   padding-top: 2.2rem;
 }
 
+/* 클라이언트 말투가 옆으로 천천히 흐르는 형광 띠 (app.py의 TICKER_LINES) */
+.ticker {
+  overflow: hidden;
+  margin-bottom: 1.6rem;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: var(--neon);
+  padding: 9px 0;
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-flow 45s linear infinite;
+}
+.ticker span {
+  white-space: nowrap;
+  font-size: 16px;
+  color: var(--ink);
+}
+.ticker .ticker-emoji {
+  margin: 0 1.1em; /* 말투 사이사이에 맥락에 맞는 이모지 (app.py의 TICKER_LINES) */
+}
+@keyframes ticker-flow {
+  to { transform: translateX(-50%); } /* 같은 내용을 두 번 이어 붙여서 절반만큼 가면 처음과 같아 보임 */
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+}
+
 /* 입력 칸 제목: 큼직한 픽셀 글자 */
-[data-testid="stTextArea"] [data-testid="stWidgetLabel"] p {
+.st-key-feedback-title p {
   font-size: clamp(24px, 2.6vw, 36px);
   line-height: 1.2;
   color: var(--ink);
+  margin: 0;
 }
-[data-testid="stTextArea"] [data-testid="stWidgetLabel"] {
-  margin-bottom: 0.8rem;
+.st-key-feedback-title {
+  margin-bottom: 0.4rem; /* 제목과 종이 사이 */
 }
 
-/* 입력 칸: 옅은 회색 + 검은 선 */
-[data-testid="stTextAreaRootElement"] {
-  border: var(--stroke) solid var(--ink) !important;
-  border-radius: 18px !important;
-  background: var(--fill) !important;
-  box-shadow: none;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+/* 입력 칸 = 종이 메모: 흰 종이 + 검은 선 + 오른쪽 아래 접힘 + 타자 친 머리말(FROM/TO) */
+.st-key-memo {
+  position: relative;
+  gap: 0.2rem;
+  border: var(--stroke) solid var(--ink);
+  background: #FFFFFF;
+  padding: 1.1rem 1.5rem 1.4rem !important;
+  transition: box-shadow 0.2s ease;
 }
-[data-testid="stTextAreaRootElement"]:focus-within {
-  background: #FFFFFF !important;
-  box-shadow: 4px 4px 0 var(--ink); /* 누르면 그림자 선이 생기며 살짝 떠 보임 */
+.st-key-memo:focus-within {
+  box-shadow: 4px 4px 0 var(--ink); /* 쓰는 중이면 그림자 선이 생기며 살짝 떠 보임 */
 }
-[data-testid="stTextAreaRootElement"] textarea {
+.st-key-memo::after {
+  content: "";
+  position: absolute;
+  /* 테두리 바깥으로 4px 더 그려서 모서리 아래로 비치는 선/그림자를 바탕색으로 가림 */
+  right: calc(var(--stroke) * -1 - 4px);
+  bottom: calc(var(--stroke) * -1 - 4px);
+  width: 34px;
+  height: 34px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34'%3E%3Cpath d='M30 0H34V34H0V30Z' fill='%23F4F4EF'/%3E%3Cpath d='M0.75 29.25V0.75H29.25Z' fill='white' stroke='%23111111' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.memo-head p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.memo-head::after {
+  content: "--------------------------------------------------------------------------------------------------------------------------------";
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1;
+  margin-top: 4px;
+  color: var(--ink);
+}
+.st-key-memo [data-testid="stTextAreaRootElement"] {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.st-key-memo [data-testid="stTextAreaRootElement"] textarea {
   background: transparent !important;
   color: var(--ink) !important;
-  padding: 1.2rem 1.4rem !important;
+  padding: 0.6rem 0 !important;
   font-size: 18px !important;
   line-height: 1.6 !important;
+  resize: none; /* 크기 조절 손잡이가 접힌 모서리 위에 겹치지 않게 */
 }
-[data-testid="stTextAreaRootElement"] textarea::placeholder {
+.st-key-memo [data-testid="stTextAreaRootElement"] textarea::placeholder {
   color: #8A8A85 !important;
+}
+
+/* '랜덤 피드백 뽑기' 버튼: 흰 바탕 + 검은 선. 누르면 예시 피드백 하나가 입력 칸에 채워짐 */
+.st-key-random-pick button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 14px;
+  background: #FFFFFF;
+  color: var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.st-key-random-pick button p {
+  font-size: 15px;
+}
+.st-key-random-pick button:hover,
+.st-key-random-pick button:focus-visible {
+  border-color: var(--ink);
+  background: #FFFFFF;
+  color: var(--ink);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--ink);
 }
 
 /* 작은 안내 문구 */
@@ -173,7 +257,7 @@
   color: #55554F;
 }
 
-/* 버튼: 형광 연두 + 검은 선 + 오른쪽에 동그라미 화살표 (대비 4.5:1 이상) */
+/* 버튼: 형광 연두 + 검은 선, 글자만 (대비 4.5:1 이상) */
 [data-testid="stBaseButton-primary"] {
   min-height: 56px;
   border: var(--stroke) solid var(--ink);
@@ -187,19 +271,9 @@
 [data-testid="stBaseButton-primary"] * {
   color: var(--ink);
 }
-[data-testid="stBaseButton-primary"] span[data-has-shortcut] {
-  flex-direction: row-reverse; /* 화살표를 글자 오른쪽으로 */
-  gap: 12px;
-}
 /* 작은 로봇이 버튼에 앉아 있을 때(buddy.js가 data-buddy를 붙임): 로봇 자리만큼 글자를 오른쪽으로 */
 [data-testid="stBaseButton-primary"][data-buddy] span[data-has-shortcut] {
   padding-left: 84px;
-}
-[data-testid="stBaseButton-primary"] [data-testid="stIconMaterial"] {
-  border: var(--stroke) solid var(--ink);
-  border-radius: 50%;
-  padding: 3px;
-  font-size: 18px;
 }
 [data-testid="stBaseButton-primary"]:hover {
   background: var(--neon);
@@ -222,63 +296,39 @@
 }
 
 /* ------------------------------------------------------------
-   번역 결과: 컴퓨터로 타자 친 종이 (레퍼런스: 접힌 종이 + 찢어진 종이)
-   - 1번(해석)은 오른쪽 위가 접힌 종이, 아래 끝은 톱니처럼 찢김
-   - 2~4번은 그 밑으로 찢어진 종이가 한 장씩 이어짐 (윗부분은 앞 종이 밑에 깔림)
+   번역 결과: 컴퓨터로 타자 친 종이 4장 (항목마다 종이 1장)
+   - 종이마다 오른쪽 아래 모서리가 접혀 있음
    - 제목 아래에는 '-------' 줄을 타자로 친 것처럼 그음
    ------------------------------------------------------------ */
 .st-key-result {
   margin-top: 1.2rem;
-  gap: 16px;
+  gap: 30px; /* 종이 사이를 띄워서 항목끼리 구분되게 */
 }
 .st-key-result > div:first-child {
-  margin-bottom: 8px;
+  margin-bottom: -6px; /* 종이 사이 간격(30px)이 제목 아래에도 붙어서 조금 줄임 */
 }
 .st-key-result > div:first-child p {
   font-size: 20px;
 }
 
 [class*="st-key-card-"] {
-  --tooth: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M0 0H14V1L7 8L0 1Z' fill='white'/%3E%3Cpath d='M0 1L7 8L14 1' fill='none' stroke='%23111111' stroke-width='1.5' stroke-linejoin='miter'/%3E%3C/svg%3E");
   position: relative;
   overflow: visible !important;
   border: var(--stroke) solid var(--ink);
-  border-bottom: none;
   border-radius: 0;
   background: #FFFFFF;
-  padding: 1.5rem 1.8rem 1.4rem !important;
+  padding: 1.5rem 1.8rem 1.6rem !important;
 }
-/* 아래 끝: 찢어진 톱니 (흰 면 + 검은 선) */
+/* 오른쪽 아래 모서리가 접힘 (바깥 삼각형은 바탕색으로 가리고, 접힌 면 + 대각선) */
 [class*="st-key-card-"]::after {
   content: "";
   position: absolute;
-  top: 100%;
-  left: calc(var(--stroke) * -1);
-  right: calc(var(--stroke) * -1);
-  height: 9px;
-  background: var(--tooth) repeat-x left top;
-}
-/* 뒤 종이가 앞 종이 밑에 깔리도록 겹쳐 쌓음 (앞 종이가 위) */
-.st-key-card-0 { z-index: 4; }
-.st-key-card-1 { z-index: 3; }
-.st-key-card-2 { z-index: 2; }
-.st-key-card-3 { z-index: 1; }
-.st-key-card-1,
-.st-key-card-2,
-.st-key-card-3 {
-  border-top: none;
-  margin-top: -24px; /* 위쪽을 앞 종이의 톱니 밑으로 밀어 넣음 */
-  padding-top: 2.4rem !important;
-}
-/* 1번 종이: 오른쪽 위 모서리가 접힘 (바깥 삼각형은 바탕색으로 가리고, 접힌 면 + 대각선) */
-.st-key-card-0::before {
-  content: "";
-  position: absolute;
-  top: calc(var(--stroke) * -1);
-  right: calc(var(--stroke) * -1);
-  width: 30px;
-  height: 30px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30'%3E%3Cpath d='M0 0H30V30Z' fill='%23F4F4EF'/%3E%3Cpath d='M0.75 0.75V29.25H29.25Z' fill='white' stroke='%23111111' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+  /* 테두리 바깥으로 4px 더 그려서 모서리 아래로 비치는 선/그림자를 바탕색으로 가림 */
+  right: calc(var(--stroke) * -1 - 4px);
+  bottom: calc(var(--stroke) * -1 - 4px);
+  width: 34px;
+  height: 34px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34'%3E%3Cpath d='M30 0H34V34H0V30Z' fill='%23F4F4EF'/%3E%3Cpath d='M0.75 29.25V0.75H29.25Z' fill='white' stroke='%23111111' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* 제목: 타자 친 글자 + 그 아래 '-------' 줄 */
@@ -287,7 +337,7 @@
 }
 [class*="st-key-card-"] > div:first-child strong {
   font-weight: 400;
-  font-size: 17px;
+  font-size: 20px;
 }
 [class*="st-key-card-"] > div:first-child::after {
   content: "--------------------------------------------------------------------------------------------------------------------------------";
@@ -315,25 +365,6 @@
   line-height: 1.7;
 }
 
-/* 결과가 나타날 때: 카드가 위에서부터 하나씩 툭툭 떠오름 */
-@keyframes card-pop {
-  from { opacity: 0; transform: translateY(18px) rotate(-1deg); }
-  70% { opacity: 1; transform: translateY(-3px) rotate(0.3deg); }
-  to { opacity: 1; transform: none; }
-}
-[class*="st-key-card-"] {
-  animation: card-pop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-.st-key-card-0 { animation-delay: 0.05s; }
-.st-key-card-1 { animation-delay: 0.18s; }
-.st-key-card-2 { animation-delay: 0.31s; }
-.st-key-card-3 { animation-delay: 0.44s; }
-
-/* 컴퓨터에서 "애니메이션 줄이기"를 켰으면 움직이지 않기 */
-@media (prefers-reduced-motion: reduce) {
-  [class*="st-key-card-"] { animation: none; }
-}
-
 /* 회신 초안 복사 상자: 옅은 회색 + 검은 선 */
 .st-key-card-3 [data-testid="stCode"] pre {
   background: var(--fill) !important;
@@ -358,7 +389,8 @@
 /* 번역 결과: 제목 아래에서 로봇(왼쪽 빈 자리)이 말풍선으로 요약을 말해줌 */
 .st-key-result-talk {
   gap: 4px;
-  margin-bottom: 30px; /* 로봇 바닥 그림자가 종이에 닿지 않게 */
+  margin-top: 40px; /* '번역 결과' 제목과 로봇 사이 여백 */
+  margin-bottom: 16px; /* 로봇 바닥 그림자가 종이에 닿지 않게 */
 }
 .st-key-result-talk {
   flex-wrap: nowrap !important;
@@ -372,7 +404,7 @@
   min-width: 0;
 }
 .st-key-result-robot {
-  height: 132px;
+  height: 132px !important; /* 빈 칸이라 높이를 정해두지 않으면 0이 돼서 로봇이 제목 위로 올라감 */
 }
 .st-key-result-bubble {
   position: relative;
@@ -384,6 +416,10 @@
 .st-key-result-bubble p {
   margin: 0;
   line-height: 1.7;
+}
+/* Streamlit이 글 아래에 붙이는 음수 여백을 없애서 글이 말풍선 가운데에 오게 */
+.st-key-result-bubble [data-testid="stMarkdownContainer"] {
+  margin-bottom: 0 !important;
 }
 /* 말풍선 꼬리 (레퍼런스: 왼쪽 아래 모서리에서 로봇 쪽으로 휘어 나온 꼬리)
    왼쪽 선이 내려오다 바깥으로 휘어 뾰족해지고, 다시 'ㅅ'처럼 올라갔다 아랫선으로 이어짐.
@@ -405,6 +441,6 @@
     flex-basis: 84px !important;
   }
   .st-key-result-robot {
-    height: 110px;
+    height: 110px !important;
   }
 }

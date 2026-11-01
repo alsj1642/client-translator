@@ -1,0 +1,315 @@
+/* 하소연 탭. 이 영역은 따로 떨어진 상자라서 styles.css가 닿지 않으므로 여기서 꾸밉니다.
+   모양은 번역 탭과 같은 키치한 라인 스타일: 검은 선 + 흰 종이 + 형광 연두 + 픽셀 글꼴 Mona12 */
+.vent {
+  --ink: #111111;
+  --paper: #F4F4EF; /* 바깥 박스 바탕색 (접힌 모서리, 말풍선 꼬리에 씀) */
+  --fill: #EBEBE6;
+  --neon: #76F25C;
+  --stroke: 1.5px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--ink);
+  font-family: "Mona12 Text KR", "Mona12 Color Emoji", "Mona12", "Pretendard", sans-serif;
+  font-weight: 400;
+  word-break: keep-all;
+}
+.vent p { margin: 0; }
+.vent button { font: inherit; color: var(--ink); cursor: pointer; }
+.vent button:focus-visible,
+.vent textarea:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* 로봇 + 말풍선 */
+.vent-talk {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+/* 로봇: 번역 탭 로봇과 같은 크기 (200px 그림을 132px 자리에 겹쳐 앉힘) */
+.vent-robot {
+  flex: 0 0 200px;
+  height: 200px;
+  margin: -34px;
+}
+.vent-bubble {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 1.1rem 1.4rem;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 18px;
+  border-bottom-left-radius: 0;
+  background: #FFFFFF;
+}
+/* 말풍선 꼬리: 왼쪽 아래 모서리에서 로봇 쪽으로 휘어 나옴 (번역 결과 말풍선과 같은 모양) */
+.vent-bubble::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--stroke) * -1 - 14px);
+  bottom: calc(var(--stroke) * -1);
+  width: 40px;
+  height: 30px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='30'%3E%3Cpath d='M14 8H40V30H14Z' fill='%23F4F4EF'/%3E%3Cpath d='M14.75 0V8Q14.75 26 1 29.25Q13 29.5 20 20Q25 29.25 40 29.25V0Z' fill='white'/%3E%3Cpath d='M14.75 0V8Q14.75 26 1 29.25Q13 29.5 20 20Q25 29.25 40 29.25' fill='none' stroke='%23111111' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.vent-bubble-title {
+  font-size: 19px;
+  line-height: 1.5;
+}
+.vent-bubble-sub {
+  margin-top: 6px !important;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #55554F;
+}
+.vent-bubble-sub:empty { display: none; }
+
+/* 줄 종이 */
+.vent-label {
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1.2;
+}
+.vent-paper {
+  position: relative;
+  border: var(--stroke) solid var(--ink);
+  background: #FFFFFF;
+  transition: box-shadow 0.2s ease;
+}
+.vent-paper:focus-within {
+  box-shadow: 4px 4px 0 var(--ink);
+}
+/* 오른쪽 아래 접힘 (테두리 바깥 4px까지 바탕색으로 칠해서 선/그림자가 비치지 않게) */
+.vent-paper::after {
+  content: "";
+  position: absolute;
+  right: calc(var(--stroke) * -1 - 4px);
+  bottom: calc(var(--stroke) * -1 - 4px);
+  width: 34px;
+  height: 34px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34'%3E%3Cpath d='M30 0H34V34H0V30Z' fill='%23F4F4EF'/%3E%3Cpath d='M0.75 29.25V0.75H29.25Z' fill='white' stroke='%23111111' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+.vent-paper textarea {
+  --line: 34px;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: calc(var(--line) * 6 + 16px);
+  padding: 8px 1.4rem 8px 4.2rem;
+  border: 0;
+  outline: none;
+  resize: none;
+  font: inherit;
+  font-size: 18px;
+  line-height: var(--line);
+  color: var(--ink);
+  /* 가로줄 + 왼쪽 여백선 (글과 함께 스크롤) */
+  background:
+    linear-gradient(90deg, transparent calc(3rem - 1px), rgba(17, 17, 17, 0.45) calc(3rem - 1px), rgba(17, 17, 17, 0.45) 3rem, transparent 3rem),
+    repeating-linear-gradient(transparent 0, transparent calc(var(--line) - 1px), rgba(17, 17, 17, 0.14) calc(var(--line) - 1px), rgba(17, 17, 17, 0.14) var(--line));
+  background-position: 0 8px;
+  background-attachment: local;
+}
+.vent-paper textarea::placeholder { color: #8A8A85; }
+.vent-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -4px;
+  font-size: 13px;
+  color: #55554F;
+}
+
+/* 로봇 한마디 켜기/끄기 + 말투 */
+.vent-ai {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 1rem 1.3rem;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 18px;
+  background: #FFFFFF;
+}
+.vent-ai-text { flex: 1 1 auto; min-width: 0; }
+.vent-ai-title { font-size: 17px; }
+.vent-ai-sub {
+  margin-top: 4px !important;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #55554F;
+}
+.vent-tone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.vent-tone-label { font-size: 13px; margin-right: 4px; }
+.vent-tone button {
+  padding: 4px 14px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: #FFFFFF;
+  font-size: 14px;
+}
+.vent-tone button[aria-checked="true"] { background: var(--neon); }
+.vent-ai.off .vent-tone { opacity: 0.4; pointer-events: none; }
+/* 스위치: 켜면 형광 연두 + 동그라미가 오른쪽 */
+.vent-switch {
+  flex: 0 0 auto;
+  position: relative;
+  width: 52px;
+  height: 30px;
+  padding: 0;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 999px;
+  background: #FFFFFF;
+  transition: background 0.2s ease;
+}
+.vent-switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: var(--ink);
+  transition: translate 0.2s ease;
+}
+.vent-switch[aria-checked="true"] { background: var(--neon); }
+.vent-switch[aria-checked="true"] span { translate: 22px 0; }
+
+/* 버튼 + 쓰레기통 */
+.vent-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.vent-throw {
+  min-height: 56px;
+  padding: 0 26px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 18px;
+  font-size: 17px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.vent-throw { background: var(--neon); }
+.vent-throw:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.vent-throw:disabled { opacity: 0.5; cursor: default; }
+.vent-burn {
+  margin-left: auto;
+  min-height: 56px; /* '구겨서 던지기' 버튼과 같은 높이 */
+  padding: 0 22px;
+  border: var(--stroke) solid var(--ink);
+  border-radius: 18px;
+  background: #FFFFFF;
+  font-size: 15px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.vent-burn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.vent-burn:disabled { opacity: 0.5; cursor: default; }
+.vent-bin {
+  position: relative;
+}
+/* 불길: 쓰레기통 앞에서 통째로 감싸며 활활 (평소엔 숨김). 큰 불길 + 양옆 작은 불길이 각자 일렁임 */
+.vent-fire {
+  position: absolute;
+  z-index: 2; /* 쓰레기통보다 앞 */
+  left: 50%;
+  bottom: -6px;
+  width: 110px;
+  height: 120px;
+  margin-left: -55px;
+  transform-origin: 50% 100%;
+  scale: 0;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 0 12px rgba(255, 122, 26, 0.55)); /* 주황빛 열기 */
+}
+.vent-fire .flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.vent-bin.burning .vent-fire .f1 { animation: vent-flicker 0.28s ease-in-out infinite alternate; }
+.vent-bin.burning .vent-fire .f2 { animation: vent-flicker 0.34s ease-in-out -0.1s infinite alternate; }
+.vent-bin.burning .vent-fire .f3 { animation: vent-flicker 0.3s ease-in-out -0.2s infinite alternate-reverse; }
+@keyframes vent-flicker {
+  from { transform: scaleY(0.94) skewX(-4deg); }
+  to   { transform: scaleY(1.1) skewX(5deg); }
+}
+/* 재 더미 + 연기 (타고 난 뒤) */
+.vent-ash {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 60px;
+  height: 26px;
+  margin-left: -30px;
+  opacity: 0;
+  pointer-events: none;
+}
+.vent-smoke {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border: var(--stroke) solid #8A8A85;
+  border-radius: 50%;
+  background: #EBEBE6;
+  opacity: 0;
+  pointer-events: none;
+}
+.vent-can { display: block; overflow: visible; transform-origin: 50% 100%; } /* 흔들림·주저앉기는 바닥 기준 */
+/* 뚜껑: 왼쪽 아래 끝을 축으로 열림 (vent.js) */
+.vent-lid {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+}
+
+/* 구겨지는 종이 (던질 때만 잠깐 보임): 구겨진 모양을 따라가는 검은 윤곽선 + 옅은 그림자 */
+.vent-ghost-outline {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  filter:
+    drop-shadow(1.5px 0 0 var(--ink)) drop-shadow(-1.5px 0 0 var(--ink))
+    drop-shadow(0 1.5px 0 var(--ink)) drop-shadow(0 -1.5px 0 var(--ink))
+    drop-shadow(5px 5px 0 rgba(17, 17, 17, 0.18));
+}
+/* 줄 종이와 같은 무늬 (가로줄 + 왼쪽 여백선) 위에 구김 무늬가 점점 진해짐 */
+.vent-ghost {
+  position: absolute;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, transparent calc(3rem - 1px), rgba(17, 17, 17, 0.45) calc(3rem - 1px), rgba(17, 17, 17, 0.45) 3rem, transparent 3rem),
+    repeating-linear-gradient(transparent 0, transparent 41px, rgba(17, 17, 17, 0.14) 41px, rgba(17, 17, 17, 0.14) 42px),
+    #FFFFFF;
+}
+.vent-creases {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+
+/* 좁은 화면 (휴대폰) */
+@media (max-width: 720px) {
+  .vent-robot { flex-basis: 140px; height: 140px; margin: -22px; } /* 번역 탭 휴대폰 크기와 같게 */
+  .vent-actions { flex-wrap: wrap; }
+}

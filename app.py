@@ -3,8 +3,10 @@
 # ==============================================
 MODEL_NAME = "gpt-4.1-mini"      # 사용할 OpenAI 모델 이름
 PROMPT_FILE = "prompts/v2_1.txt"   # 사용할 프롬프트 파일 (예: "prompts/v2.txt")
+VENT_PROMPT_FILE = "prompts/vent_v4.txt"  # 하소연 탭 로봇 한마디용 프롬프트 파일
 
 import os
+import random
 import re
 from pathlib import Path
 
@@ -44,14 +46,16 @@ def load_prompt():
     return path.read_text(encoding="utf-8").strip()
 
 
-def ask_ai(api_key, system_prompt, feedback):
+def ask_ai(api_key, system_prompt, feedback, max_tokens=None):
     """
     AI를 호출합니다.
     성공하면 (결과 텍스트, None), 실패하면 (None, 쉬운 안내 문구)를 돌려줍니다.
     오류 원문은 화면에 보여주지 않습니다. (키 값이 섞여 나올 수 있기 때문)
+    max_tokens를 주면 AI 답의 최대 길이를 그만큼으로 막습니다 (토큰 아끼기).
     """
     import openai
 
+    limit = {"max_completion_tokens": max_tokens} if max_tokens else {}
     try:
         client = openai.OpenAI(api_key=api_key)
         response = client.chat.completions.create(
@@ -60,6 +64,7 @@ def ask_ai(api_key, system_prompt, feedback):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": feedback},
             ],
+            **limit,
         )
         return response.choices[0].message.content or "", None
     except openai.AuthenticationError:
@@ -98,20 +103,64 @@ def split_sections(text):
     return [found[t] for t in SECTION_TITLES]
 
 
+# 번역 화면 맨 위에 천천히 흘러가는 클라이언트 말투 띠 (말투, 뒤에 붙는 이모지)
+TICKER_LINES = [
+    ("느낌 아시죠?", "🤔"), ("좀 더 세련되게", "✨"), ("임팩트 있게요", "💥"), ("뭔가 아쉬워요", "😕"),
+    ("살짝만 바꿔주세요", "🙏"), ("고급스럽지만 가볍게", "💎"), ("그 느낌 말고요", "🙅"), ("확 튀게 해주세요", "🔥"),
+]
+
+# '랜덤 피드백 뽑기' 버튼이 입력 칸에 채워주는 예시 피드백
+EXAMPLES = [
+    "고급스럽지만 무겁지 않게 해주세요",
+    "로고 좀 더 크게 키워주세요",
+    "뭔가 아쉬운데 더 세련되게요",
+    "임팩트 있게, 근데 너무 튀지는 않게요",
+    "전체적으로 좀 더 트렌디하게 가주세요",
+    "심플한데 허전하지 않게 부탁드려요",
+    "색감을 좀 더 따뜻하게, 그래도 차분하게요",
+    "처음 시안 느낌으로 돌아가되 지금 것도 살려주세요",
+    "젊은 느낌인데 너무 가볍지 않게요",
+    "한눈에 들어오게, 정보는 다 넣어주세요",
+]
+
+
+def pick_random_example():
+    """ '랜덤 피드백 뽑기'를 누르면 예시 피드백 하나를 골라 입력 칸에 채웁니다. (지금 칸에 있는 문장은 빼고 고름) """
+    current = st.session_state.get("feedback", "")
+    st.session_state.feedback = random.choice([e for e in EXAMPLES if e != current])
+
+
+def render_ticker():
+    """ 클라이언트 말투가 옆으로 천천히 흐르는 형광 띠. 끊김 없이 돌도록 같은 내용을 두 번 이어 붙입니다. """
+    items = "".join(f'<span>{line}</span><span class="ticker-emoji">{emoji}</span>' for line, emoji in TICKER_LINES)
+    st.html(f'<div class="ticker" aria-hidden="true"><div class="ticker-track">{items}{items}</div></div>')
+
+
 def render_translate_tab():
     """ 번역 탭을 그리고, 작은 로봇 표정에 쓸 상태를 돌려줍니다: "idle"(평소), "result"(결과 나옴), "error"(오류) """
-    feedback = st.text_area(
-        "클라이언트 피드백",
-        height=160,
-        placeholder="예) 전체적으로 좀 더 고급스럽게, 근데 너무 무겁진 않게 해주세요. 로고는 더 크게요.",
-        help="실제 사람 이름, 연락처, 회사명은 지우고 넣어주세요.",
-    )
+    render_ticker()
+
+    # 입력 칸 = 종이 메모 (머리말 + 입력 칸, 오른쪽 아래가 접힘. 모양은 styles.css의 .st-key-memo)
+    with st.container(key="feedback-title"):
+        st.markdown("클라이언트 피드백")
+    with st.container(key="memo"):
+        st.html('<div class="memo-head"><p>FROM. 클라이언트</p><p>TO. 눈치봇</p></div>')
+        feedback = st.text_area(
+            "클라이언트 피드백",
+            key="feedback",
+            height=160,
+            placeholder="예) 전체적으로 좀 더 고급스럽게, 근데 너무 무겁진 않게 해주세요. 로고는 더 크게요.",
+            label_visibility="collapsed",
+        )
+
+    with st.container(key="random-pick"):
+        st.button("랜덤 피드백 뽑기", icon=":material/casino:", on_click=pick_random_example)
 
     left, right = st.columns([3, 1], vertical_alignment="center")
     with left:
         st.caption(":material/lock: 실명·연락처·회사명은 지우고 넣어주세요.")
     with right:
-        clicked = st.button("번역하기", type="primary", icon=":material/north_east:", use_container_width=True)
+        clicked = st.button("번역하기", type="primary", use_container_width=True)
 
     if not clicked:
         return "idle"
@@ -227,9 +276,63 @@ def render_result(result):
     st.caption(f"모델: {MODEL_NAME} · 프롬프트: {PROMPT_FILE}")
 
 
+# 하소연 탭 설정 (토큰 아끼기: 글은 앞부분만, 답은 한 문장만)
+VENT_FIXED_REPLY = "다 털었어요. 한결 가볍죠?"  # 로봇 한마디를 끈 경우 보여줄 고정 문구
+VENT_MAX_CHARS = 300   # AI에게 보내는 하소연 글의 최대 글자 수 (앞부분만)
+VENT_MAX_TOKENS = 90   # AI 답의 최대 길이 (한두 문장이면 충분)
+VENT_TONES = ["정중", "팩폭"]  # 로봇 말투 (로봇 표정 이름과 같음)
+VENT_ERROR_REPLY = "앗, 지금은 한마디가 어려워요. 그래도 다 털었어요."
+
+
+def vent_reply(payload):
+    """
+    하소연 글을 받아 로봇 한마디를 만듭니다. AI는 한 번만, 짧게 부릅니다.
+    돌려주는 값: {"id": 던진 번호, "text": 한마디, "face": 로봇 표정}
+    글은 어디에도 저장하지 않습니다.
+    """
+    reply_id = payload.get("id")
+    text = str(payload.get("text", "")).strip()[:VENT_MAX_CHARS]
+    tone = payload.get("tone") if payload.get("tone") in VENT_TONES else VENT_TONES[0]
+    if not text:
+        return {"id": reply_id, "text": VENT_FIXED_REPLY, "face": "정중"}
+
+    api_key = load_api_key()
+    path = BASE_DIR / VENT_PROMPT_FILE
+    if not api_key or not path.exists():
+        return {"id": reply_id, "text": VENT_ERROR_REPLY, "face": "오류"}
+
+    system_prompt = path.read_text(encoding="utf-8").strip()
+    reply, error = ask_ai(api_key, system_prompt, f"말투: {tone}\n하소연: {text}", max_tokens=VENT_MAX_TOKENS)
+    lines = [l.strip().strip('"') for l in (reply or "").splitlines() if l.strip()]
+    if error or not lines:
+        return {"id": reply_id, "text": VENT_ERROR_REPLY, "face": "오류"}
+    return {"id": reply_id, "text": " ".join(lines)[:120], "face": tone}
+
+
 def render_vent_tab():
-    # 하소연 탭은 나중에 추가할 예정입니다. 지금은 자리만 잡아둡니다.
-    st.info("하소연 탭은 준비 중이에요.", icon=":material/construction:")
+    """
+    하소연 탭: 줄 종이에 적고 '구겨서 던지기'를 누르면 종이가 구겨져 쓰레기통으로 날아가고,
+    로봇이 한마디 해줍니다. 화면과 움직임은 vent/ 폴더의 파일에 있습니다.
+    로봇 한마디를 켠 경우에만 글이 파이썬으로 와서 AI에게 한 번 전달되고, 답을 받으면 화면을 다시 그립니다.
+    """
+    files = [VENT_DIR / name for name in ("vent.html", "vent.css", "vent.js")]
+    if not all(f.exists() for f in files):
+        st.info("하소연 탭 파일을 찾을 수 없어요.", icon=":material/construction:")
+        return
+    html, css, js = (f.read_text(encoding="utf-8") for f in files)
+    vent = st.components.v2.component("vent", html=html, css=css, js=js)
+    result = vent(
+        data={
+            "robotCode": load_robot_code(),
+            "fixedReply": VENT_FIXED_REPLY,
+            "reply": st.session_state.get("vent_reply"),
+        },
+        key="vent",
+        on_throw_change=lambda: None,
+    )
+    if result.throw:
+        st.session_state.vent_reply = vent_reply(result.throw)
+        st.rerun()
 
 
 def load_styles():
@@ -239,9 +342,9 @@ def load_styles():
         st.markdown(f"<style>{css_path.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 
-LOGO_PATH = BASE_DIR / "assets" / "logo-mark.svg"
 HERO_DIR = BASE_DIR / "hero"
 BUDDY_DIR = BASE_DIR / "buddy"
+VENT_DIR = BASE_DIR / "vent"
 
 # 3D 로봇이 쓰는 그림 라이브러리(Three.js)를 받아올 주소. 버전은 로봇 파일과 맞춰둡니다.
 THREE_CDN = "https://cdn.jsdelivr.net/npm/three@0.186.1"
@@ -276,8 +379,9 @@ def render_hero():
 
 def render_buddy(status):
     """
-    입력 화면 옆을 천천히 돌아다니는 작은 로봇. status("idle"/"result"/"error")에 맞춰 표정이 바뀌고,
-    결과가 나오면 멈춥니다. 모양과 움직임은 buddy/ 폴더의 파일에 있습니다. 파일이 없으면 그냥 건너뜁니다.
+    '번역하기' 버튼에 앉은 작은 로봇. status("idle"/"result"/"error")에 맞춰 표정이 바뀌고,
+    결과가 나오면 '번역 결과' 제목 아래로 옮겨 앉아 말풍선으로 요약을 말해줍니다.
+    모양과 움직임은 buddy/ 폴더의 파일에 있습니다. 파일이 없으면 그냥 건너뜁니다.
     """
     files = [BUDDY_DIR / name for name in ("buddy.html", "buddy.js")]
     if not all(f.exists() for f in files):
@@ -290,7 +394,7 @@ def render_buddy(status):
 def main():
     st.set_page_config(
         page_title="눈치봇 · 클라이언트 피드백 번역",
-        page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else ":material/forum:",
+        page_icon="👀",  # 브라우저 탭 아이콘 (파비콘)
         layout="wide",
     )
     load_styles()

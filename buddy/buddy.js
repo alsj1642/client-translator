@@ -70,6 +70,7 @@ function createBuddy(root, robotCode) {
 
     // 표정: 번역 중(로딩 표시가 보임)이면 '생각 중', 아니면 상태에 맞게
     const thinking = !!document.querySelector('[data-testid="stSpinner"]');
+
     const next = thinking ? THINKING_FACE : FACES[status] || FACES.idle;
     if (next !== face) robot.setExpression((face = next));
   }
