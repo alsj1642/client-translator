@@ -188,7 +188,7 @@ VENT_PROMPT_FILE = "prompts/vent_v6.txt"  # 하소연 탭 로봇 한마디용 �
 
 ## 배포하기 (Streamlit Community Cloud)
 
-배포 주소: https://client-translator-uhxurpistedfmtpk5ln27q.streamlit.app/
+배포 주소: https://client-translator.streamlit.app/
 
 1. 이 프로젝트를 GitHub 저장소에 올립니다. (`.env`는 자동으로 빠져요)
 2. https://share.streamlit.io 에 GitHub 계정으로 로그인하고 **Create app**을 누릅니다.
