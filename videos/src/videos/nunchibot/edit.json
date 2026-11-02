@@ -1,0 +1,11 @@
+{
+  "source": "public/audio/nunchibot/music/turning_pages-open-road-ahead-590782.mp3",
+  "out": "public/audio/nunchibot/music/nunchibot-edit.wav",
+  "bpm": 199.998,
+  "firstDownbeat": 0.2542,
+  "segments": [
+    { "fromBar": 1, "toBar": 67, "why": "곡 처음부터 66마디(200BPM 기준). 잔잔한 앞부분 16마디에 오프닝·입력, 17마디부터 드럼이 들어올 때 번역 결과" }
+  ],
+  "duration": 79.2,
+  "fadeOutSeconds": 1.2
+}
