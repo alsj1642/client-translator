@@ -58,6 +58,9 @@ async function mountRobot(root, robotCode, cleanups, copyIntro) {
 // 스크롤에 맞춰 두 가지 값을 바꿈
 // - --frost (소개 영역): 불투명 유리 정도. 소개 영역 높이의 70%만큼 내리면 다 덮임
 // - --sheet (스크롤 상자, styles.css가 씀): 아래 박스가 커진 정도. 박스 윗변이 화면 맨 위에 닿으면 1
+// 입력 화면이 거의 다 보이기 전(흐릿할 때)에는 누르지 못하게 스크롤 상자에 data-sheet-ready를 붙였다 뗌
+//   (styles.css가 클릭을 막고, 여기서 inert로 키보드 Tab 이동도 막음. 버튼 위 작은 로봇도 이 표시를 봄)
+const SHEET_READY = 0.96; // --sheet가 이 이상이면 입력 화면이 90% 넘게 보임 (styles.css의 --show 계산과 맞춤)
 function followScroll(root, cleanups) {
   const section = root.querySelector(".hero");
   const scroller = document.querySelector('[data-testid="stMain"]') || document.scrollingElement;
@@ -72,6 +75,9 @@ function followScroll(root, cleanups) {
     const sheet = clamp01(scroller.scrollTop / Math.max(1, section.offsetHeight - peek));
     section.style.setProperty("--frost", frost.toFixed(3));
     scroller.style.setProperty("--sheet", sheet.toFixed(3));
+    const ready = sheet >= SHEET_READY;
+    scroller.toggleAttribute("data-sheet-ready", ready);
+    document.querySelectorAll('[data-testid="stTabs"] > div').forEach((el) => { el.inert = !ready; });
   };
   const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
   scroller.addEventListener("scroll", onScroll, { passive: true });

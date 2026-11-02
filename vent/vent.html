@@ -1,15 +1,38 @@
 <section class="vent" aria-label="하소연">
-  <!-- 로봇 + 말풍선: 처음엔 인사, 던진 뒤에는 로봇 한마디 -->
-  <div class="vent-talk">
-    <div class="vent-robot" role="img" aria-label="눈치봇"></div>
-    <div class="vent-bubble" aria-live="polite">
-      <p class="vent-bubble-title">오늘 클라이언트 때문에 힘들었나요?</p>
-      <p class="vent-bubble-sub">여기에 다 털어놓고 가세요. 적은 글은 저장되지 않고, 던지면 사라져요.</p>
-    </div>
+  <!-- 인사: 핀으로 꽂아둔 메모 종이 -->
+  <div class="vent-note">
+    <svg class="vent-pin" width="30" height="34" viewBox="0 0 30 34" fill="none" aria-hidden="true">
+      <path d="M15 20 L15 32" stroke="#111" stroke-width="1.5" stroke-linecap="round" />
+      <ellipse cx="15" cy="21" rx="9" ry="3" fill="#fff" stroke="#111" stroke-width="1.5" />
+      <circle cx="15" cy="11" r="9.25" fill="#76F25C" stroke="#111" stroke-width="1.5" />
+      <path d="M10.5 8.5 Q12 5.5 15 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" />
+    </svg>
+    <p class="vent-note-title">오늘 클라이언트 때문에 힘들었나요?</p>
+    <p class="vent-note-sub">여기에 다 털어놓고 가세요. 적은 글은 저장되지 않고, 던지면 사라져요.</p>
   </div>
 
-  <!-- 줄 종이에 적기 -->
   <label class="vent-label" for="vent-text">하소연 적기</label>
+
+  <!-- 캡슐 필터: 로봇 한마디 켜짐/꺼짐 (기본 켜짐) + 말투 -->
+  <div class="vent-filters">
+    <div class="vent-filter">
+      <span class="vent-filter-label" id="vent-ai-label">눈치봇의 한마디</span>
+      <div class="vent-pills vent-ai" role="radiogroup" aria-labelledby="vent-ai-label">
+        <button type="button" role="radio" aria-checked="true" data-ai="on">켜짐</button>
+        <button type="button" role="radio" aria-checked="false" data-ai="off">꺼짐</button>
+      </div>
+    </div>
+    <div class="vent-filter vent-tone">
+      <span class="vent-filter-label" id="vent-tone-label">말투</span>
+      <div class="vent-pills" role="radiogroup" aria-labelledby="vent-tone-label">
+        <button type="button" role="radio" aria-checked="true" data-tone="정중">정중</button>
+        <button type="button" role="radio" aria-checked="false" data-tone="팩폭">팩폭</button>
+      </div>
+    </div>
+  </div>
+  <p class="vent-filter-sub">켜면 로봇이 한마디 해줘요. 적은 글이 AI에게 전달돼요.</p>
+
+  <!-- 줄 종이에 적기 -->
   <div class="vent-paper">
     <textarea id="vent-text" rows="6" placeholder="이런 요청을 받았다면 누구라도 답답하죠. 마음껏 적어보세요."></textarea>
   </div>
@@ -18,18 +41,12 @@
     <span class="vent-count" aria-live="polite">0자</span>
   </div>
 
-  <!-- 로봇 한마디 켜기/끄기 + 말투 -->
-  <div class="vent-ai">
-    <div class="vent-ai-text">
-      <p class="vent-ai-title">눈치봇이 한마디 해줄게요</p>
-      <p class="vent-ai-sub">켜면 적은 글이 AI에게 전달돼요. 끄면 구겨서 버리기만 해요.</p>
-      <div class="vent-tone" role="radiogroup" aria-label="로봇 말투">
-        <span class="vent-tone-label">말투</span>
-        <button type="button" role="radio" aria-checked="true" data-tone="정중">정중</button>
-        <button type="button" role="radio" aria-checked="false" data-tone="팩폭">팩폭</button>
-      </div>
+  <!-- 로봇 + 한마디: 줄 종이 바로 아래. 던지기 전엔 로봇도 없음 (던지면 나타나서 말풍선으로 한마디) -->
+  <div class="vent-reply" hidden>
+    <div class="vent-robot" role="img" aria-label="눈치봇"></div>
+    <div class="vent-bubble" aria-live="polite">
+      <p class="vent-reply-text"></p>
     </div>
-    <button type="button" class="vent-switch" role="switch" aria-checked="true" aria-label="눈치봇 한마디 켜기"><span></span></button>
   </div>
 
   <!-- 버튼 + 쓰레기통 (던지면 뚜껑이 열림) -->

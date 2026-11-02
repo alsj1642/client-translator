@@ -10,7 +10,8 @@ const FACES = { idle: "기본", result: "정중", error: "오류" };
 const THINKING_FACE = "생각 중";
 const SEAT = {
   size: 200,   // 로봇 그림 크기(px). 로봇은 그림 가운데 절반쯤을 차지함
-  beforeText: 54, // '번역하기' 글자 왼쪽 끝에서 로봇 가운데까지(px). 글자 바로 왼쪽에 붙어 앉음
+  beforeText: 45, // '번역하기' 글자 왼쪽 끝에서 로봇 가운데까지(px). 글자 바로 왼쪽에 붙어 앉음
+  beforeTextMobile: 56, // 휴대폰(720px 이하): 로봇과 글자를 붙여 한 묶음으로 (묶음 위치는 styles.css의 글자 밀기 80px로 버튼 가운데보다 살짝 왼쪽)
   drop: 0.74,  // 버튼 아래 끝에 맞출 그림 높이 비율. 작을수록 로봇이 위로 튀어나옴
 };
 
@@ -80,7 +81,8 @@ function createBuddy(root, robotCode) {
       slot.style.top = `${seat.top + seat.height / 2 - size / 2}px`;
       slot.style.clipPath = "none";
     } else {
-      slot.style.left = `${textLeft(btnEl) - SEAT.beforeText - SEAT.size / 2}px`;
+      const gap = innerWidth <= 720 ? SEAT.beforeTextMobile : SEAT.beforeText;
+      slot.style.left = `${textLeft(btnEl) - gap - SEAT.size / 2}px`;
       slot.style.top = `${seat.bottom - SEAT.size * SEAT.drop}px`;
       // 버튼 아래로 삐져나온 부분(바닥 그림자)은 잘라서 로봇이 버튼 안에 앉은 것처럼
       slot.style.clipPath = `inset(0 0 ${(1 - SEAT.drop) * 100}% 0)`;
@@ -101,8 +103,10 @@ function createBuddy(root, robotCode) {
   }
 
   // 마우스가 로봇 위에 있을 때만 로봇이 클릭을 받음 (빈 곳은 아래 버튼으로 통과)
+  // 입력 화면이 아직 흐릿하면(hero.js가 data-sheet-ready를 안 붙임) 로봇도 누를 수 없음
   function onPointerMove(e) {
-    if (robot) slot.style.pointerEvents = robot.hits(e) ? "auto" : "none";
+    const ready = scroller()?.hasAttribute("data-sheet-ready");
+    if (robot) slot.style.pointerEvents = ready && robot.hits(e) ? "auto" : "none";
   }
   window.addEventListener("pointermove", onPointerMove, { passive: true });
 

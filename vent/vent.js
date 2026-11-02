@@ -2,7 +2,9 @@
 // 1) 적기: 줄 종이에 적는 동안 로봇은 옆에서 가만히 들어줌 (마우스를 따라봄)
 // 2) 구겨지는 중: '구겨서 던지기'를 누르면 종이가 몇 단계로 구겨지며 공이 되고, 글은 그 순간 지워짐
 // 3) 던지기: 구겨진 종이가 포물선을 그리며 쓰레기통으로 날아감 (쓰레기통이 살짝 흔들림)
-// 4) 로봇 반응: AI 답을 기다리는 동안 '생각 중', 답이 오면 고른 말투 표정(정중/팩폭)으로 말풍선에 한마디
+// 4) 로봇 반응: 줄 종이 바로 아래(.vent-reply)에 로봇이 나타나 말풍선으로 한마디 (던지기 전엔 로봇 없음)
+//    AI에 보내면 던지자마자 '생각 중' 표정 + THINKING 문구, 답이 오면 고른 말투 표정(정중/팩폭)으로 바뀜
+//    (사용자 시선이 글 → 버튼 → 쓰레기통으로 내려가서 한마디를 위쪽 대신 종이 아래에 둠. 맨 위 인사는 핀 꽂힌 메모)
 // 로봇 한마디를 끄면 글은 어디에도 보내지 않고, 고정 문구(data.fixedReply)만 보여줌
 // 안전장치: 던지기 전에 글 전체를 브라우저에서 먼저 검사함 (단어 목록은 app.py가 data로 넘겨줌)
 //   자해·죽음 신호(crisisWords) → 스위치와 상관없이 AI에 보내지 않고 바로 도움받을 곳 안내(crisisReply)
@@ -11,7 +13,7 @@
 // "애니메이션 줄이기"를 켠 컴퓨터에서는 구겨지기/날아가기 없이 바로 비움
 
 const EMPTY_PAPER = "먼저 적어주세요. 빈 종이는 못 던져요.";
-const WAITING = "음…";
+const THINKING = "로봇이 생각 중…";
 const MAX_CHARS = 300;     // 파이썬에 보내는 글자 수 (앞부분만. 파이썬에서도 한 번 더 자름)
 const REPLY_TIMEOUT = 25000; // 이 시간 안에 답이 안 오면 고정 문구로 마무리(ms)
 const MOTION = {
@@ -178,17 +180,19 @@ function createVent(root, data) {
   const textarea = $("#vent-text");
   const paper = $(".vent-paper");
   const count = $(".vent-count");
-  const title = $(".vent-bubble-title");
-  const sub = $(".vent-bubble-sub");
+  const reply = $(".vent-reply");
+  const bubble = $(".vent-reply .vent-bubble");
+  const replyText = $(".vent-reply-text");
   const throwBtn = $(".vent-throw");
   const burnBtn = $(".vent-burn");
   const bin = $(".vent-bin");
-  const aiBox = $(".vent-ai");
-  const aiSwitch = $(".vent-switch");
+  const filters = $(".vent-filters");
+  const aiButtons = [...root.querySelectorAll(".vent-ai button")];
   const toneButtons = [...root.querySelectorAll(".vent-tone button")];
   const can = $(".vent-can");
 
-  let robot = null;
+  let robot = null;       // 처음 한마디를 보여줄 때 만듦
+  let robotFace = "기본";
   let removed = false;
   let tone = "정중";
   let pendingId = null;   // 지금 답을 기다리는 던지기 번호
@@ -198,11 +202,18 @@ function createVent(root, data) {
   const fixedReply = data?.fixedReply || "다 털었어요. 한결 가볍죠?";
   const hasAny = (text, words) => (words || []).some((w) => text.includes(w));
 
-  function say(text, more = "") {
-    title.textContent = text;
-    sub.textContent = more;
+  // 한마디는 로봇 옆 말풍선에. 처음이면 로봇이 나타나고, 화면 밖이면 보이는 곳까지 내려감 (위기 안내가 가려지지 않게)
+  function say(text) {
+    replyText.textContent = text;
+    bubble.hidden = false;
+    if (reply.hidden) {
+      reply.hidden = false;
+      makeRobot();
+    }
+    reply.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
   }
   function face(name) {
+    robotFace = name;
     robot?.setExpression(name);
   }
   // 글자 수. 눈치봇 한마디를 켠 채 300자를 넘으면 앞부분만 전달된다고 알려줌
@@ -217,35 +228,42 @@ function createVent(root, data) {
     burnBtn.disabled = busy;
   }
 
-  // 로봇
-  (async () => {
-    if (!data?.robotCode) return;
+  // 로봇: 코드는 미리 불러두고, 로봇은 한마디 자리가 처음 보일 때 만듦 (숨긴 자리에선 크기를 못 재서)
+  const robotMaker = (async () => {
+    if (!data?.robotCode) return null;
     const url = URL.createObjectURL(new Blob([data.robotCode], { type: "text/javascript" }));
     try {
-      const { createRobot } = await import(url);
-      if (removed) return;
-      robot = createRobot($(".vent-robot"), { halo: false });
+      return (await import(url)).createRobot;
     } catch (err) {
       console.warn("하소연 로봇을 불러오지 못했어요.", err);
+      return null;
     } finally {
       URL.revokeObjectURL(url);
     }
   })();
+  async function makeRobot() {
+    const createRobot = await robotMaker;
+    if (!createRobot || removed || robot) return;
+    robot = createRobot($(".vent-robot"), { halo: false });
+    robot.setExpression(robotFace);
+  }
 
-  // 말투 고르기 / 로봇 한마디 켜기·끄기
+  // 캡슐 필터: 말투 고르기 / 로봇 한마디 켜짐·꺼짐
+  const pick = (buttons, btn) => buttons.forEach((b) => b.setAttribute("aria-checked", String(b === btn)));
   toneButtons.forEach((btn) =>
     btn.addEventListener("click", () => {
       tone = btn.dataset.tone;
-      toneButtons.forEach((b) => b.setAttribute("aria-checked", String(b === btn)));
+      pick(toneButtons, btn);
     }),
   );
-  aiSwitch.addEventListener("click", () => {
-    const on = aiSwitch.getAttribute("aria-checked") !== "true";
-    aiSwitch.setAttribute("aria-checked", String(on));
-    aiBox.classList.toggle("off", !on);
-    updateCount();
-  });
-  const aiOn = () => aiSwitch.getAttribute("aria-checked") === "true";
+  aiButtons.forEach((btn) =>
+    btn.addEventListener("click", () => {
+      pick(aiButtons, btn);
+      filters.classList.toggle("off", !aiOn());
+      updateCount();
+    }),
+  );
+  const aiOn = () => root.querySelector('.vent-ai [data-ai="on"]').getAttribute("aria-checked") === "true";
 
   textarea.addEventListener("input", updateCount);
 
@@ -338,6 +356,7 @@ function createVent(root, data) {
     const text = textarea.value.trim();
     if (!text) {
       say(EMPTY_PAPER);
+      face("오류");
       return;
     }
     setBusy(true);
@@ -349,6 +368,11 @@ function createVent(root, data) {
       // 애니메이션과 동시에 AI 답을 받으러 보냄 (기다리는 시간을 줄이려고)
       pendingId = id;
       sendThrow({ id, text: Array.from(text).slice(0, MAX_CHARS).join(""), tone, distress });
+      // 4) 던지자마자 같은 자리에 '생각 중'
+      say(THINKING);
+      face("생각 중");
+    } else {
+      bubble.hidden = true; // 지난 한마디는 치우고, 종이가 들어간 뒤에 새로 보여줌
     }
     textarea.value = ""; // 글은 이 순간 사라짐
     updateCount();
@@ -363,10 +387,8 @@ function createVent(root, data) {
       setBusy(false);
       return;
     }
-    // 4) 답을 기다리는 동안 '생각 중'
+    // 답이 너무 늦으면 고정 문구로 마무리
     if (pendingId === id) {
-      say(WAITING);
-      face("생각 중");
       timeout = setTimeout(() => {
         if (pendingId !== id) return;
         pendingId = null;

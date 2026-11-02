@@ -113,12 +113,12 @@
 .hero-title .single .part + .part { transition-delay: 0.35s; }
 .hero-title.marked .single .part { background-size: 100% 100%; }
 
-/* 3D 로봇: 화면 가운데, 큰 카피 위 */
+/* 3D 로봇: 화면 가운데, 큰 카피 위. 몸통이 아랫줄 '역'자를 덮지 않게 로봇 크기의 6%만큼 위로 (휴대폰은 아래에서 따로 정함) */
 .hero-robot {
   position: absolute;
   z-index: 2;
   left: 50%;
-  top: 50%;
+  top: calc(50% - var(--robot) * 0.06);
   width: var(--robot);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);

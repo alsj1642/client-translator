@@ -85,6 +85,10 @@
   opacity: var(--show);
   transform: translateY(calc((1 - var(--show)) * 28px));
 }
+/* 흐릿할 때는 눌리지 않게: 입력 화면이 거의 다 보이면 hero.js가 data-sheet-ready를 붙여줌 */
+[data-testid="stMain"]:not([data-sheet-ready]) [data-testid="stTabs"] > div {
+  pointer-events: none;
+}
 
 /* ------------------------------------------------------------
    입력 화면: 키치한 라인 스타일 (레퍼런스: 검은 선 + 형광 연두 + 접힌 종이 카드)
@@ -239,7 +243,7 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .st-key-random-pick button p {
-  font-size: 15px;
+  font-size: 16px; /* 버튼 글자는 모두 16px */
 }
 .st-key-random-pick button:hover,
 .st-key-random-pick button:focus-visible {
@@ -264,12 +268,15 @@
   border-radius: 18px;
   background: var(--neon);
   color: var(--ink);
-  font-size: 17px;
   box-shadow: none;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 [data-testid="stBaseButton-primary"] * {
   color: var(--ink);
+}
+/* 버튼 글자는 탭과 상관없이 모두 16px (하소연 탭 '구겨서 던지기'·'쓰레기통 불태우기'와 같게) */
+[data-testid="stBaseButton-primary"] p {
+  font-size: 16px;
 }
 /* 작은 로봇이 버튼에 앉아 있을 때(buddy.js가 data-buddy를 붙임): 로봇 자리만큼 글자를 오른쪽으로 */
 [data-testid="stBaseButton-primary"][data-buddy] span[data-has-shortcut] {
@@ -286,7 +293,7 @@
    또 버튼 위로 튀어나온 로봇이 위의 개인정보 안내 글을 가리지 않게 버튼을 아래로 띄움 */
 @media (max-width: 720px) {
   [data-testid="stBaseButton-primary"][data-buddy] span[data-has-shortcut] {
-    padding-left: 100px;
+    padding-left: 80px; /* 로봇+글자 묶음이 버튼 가운데보다 살짝 왼쪽에 오게 (눈으로 볼 때 가운데로 느껴지도록) */
   }
   [data-testid="stColumn"]:has([data-testid="stBaseButton-primary"]) {
     margin-top: 64px;
@@ -432,6 +439,7 @@
 }
 .st-key-result-bubble p {
   margin: 0;
+  font-size: 16px; /* 말풍선 글은 탭과 상관없이 16px (하소연 한마디와 같게) */
   line-height: 1.7;
 }
 /* Streamlit이 글 아래에 붙이는 음수 여백을 없애서 글이 말풍선 가운데에 오게 */
